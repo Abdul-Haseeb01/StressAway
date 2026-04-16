@@ -1,0 +1,208 @@
+'use client';
+
+import { useState } from 'react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { verifyEmail, resetPassword } from '@/utils/api';
+
+export default function ForgotPassword() {
+    const router = useRouter();
+    const [step, setStep] = useState<1 | 2>(1);
+    const [email, setEmail] = useState('');
+    const [currentPassword, setCurrentPassword] = useState('');
+    const [password, setPassword] = useState('');
+    const [confirmPassword, setConfirmPassword] = useState('');
+    const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
+    const [message, setMessage] = useState('');
+
+    const handleVerifyEmail = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setStatus('loading');
+        setMessage('');
+
+        try {
+            await verifyEmail(email);
+            setStatus('idle');
+            setStep(2);
+        } catch (err: any) {
+            setStatus('error');
+            setMessage(err.response?.data?.message || 'Email not found.');
+        }
+    };
+
+    const handleResetPassword = async (e: React.FormEvent) => {
+        e.preventDefault();
+        
+        if (password !== confirmPassword) {
+            setStatus('error');
+            setMessage('New passwords do not match');
+            return;
+        }
+
+        if (password.length < 6) {
+            setStatus('error');
+            setMessage('Password must be at least 6 characters');
+            return;
+        }
+
+        setStatus('loading');
+        setMessage('');
+
+        try {
+            await resetPassword(email, currentPassword, password);
+            setStatus('success');
+            setMessage('Your password has been successfully reset. You can now log in.');
+        } catch (err: any) {
+            setStatus('error');
+            setMessage(err.response?.data?.message || 'Failed to update password. Check your current password.');
+        }
+    };
+
+    return (
+        <div className="min-h-screen bg-gradient-to-br from-primary-50 via-white to-accent-50 flex items-center justify-center p-4">
+            <div className="absolute inset-0 overflow-hidden pointer-events-none">
+                <div className="absolute -top-40 -right-40 w-80 h-80 bg-primary-200 rounded-full blur-3xl opacity-20"></div>
+                <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-accent-200 rounded-full blur-3xl opacity-20"></div>
+            </div>
+
+            <div className="w-full max-w-md relative z-10">
+                <div className="text-center mb-8 animate-fade-in-up">
+                    <Link href="/" className="inline-flex items-center justify-center space-x-2 mb-6">
+                        <div className="w-12 h-12 bg-navy-gradient rounded-xl flex items-center justify-center shadow-navy">
+                            <span className="text-white text-2xl font-bold">S</span>
+                        </div>
+                        <span className="text-3xl font-bold text-primary-900">StressAway</span>
+                    </Link>
+                    <h1 className="text-3xl font-bold text-neutral-900 mb-2">Change Password</h1>
+                    <p className="text-neutral-600">{step === 1 ? 'Verify your email to continue' : 'Enter your current and new password'}</p>
+                </div>
+
+                <div className="bg-white rounded-2xl shadow-soft-xl p-8 border border-neutral-100 animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
+                    {status === 'success' ? (
+                        <div className="text-center py-6 block">
+                            <div className="w-16 h-16 bg-green-100 text-green-500 rounded-full flex items-center justify-center mx-auto mb-4 text-3xl">
+                                ✓
+                            </div>
+                            <h3 className="text-xl font-bold text-neutral-800 mb-2">Password Updated!</h3>
+                            <p className="text-neutral-600 text-sm mb-6">{message}</p>
+                            
+                            <Link href="/login" className="btn btn-primary w-full shadow-navy">
+                                Go to Login
+                            </Link>
+                        </div>
+                    ) : step === 1 ? (
+                        <form onSubmit={handleVerifyEmail} className="space-y-6">
+                            {status === 'error' && (
+                                <div className="p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+                                    {message}
+                                </div>
+                            )}
+
+                            <div>
+                                <label className="label">Registered Email</label>
+                                <input
+                                    type="email"
+                                    required
+                                    className="input"
+                                    placeholder="your.email@example.com"
+                                    value={email}
+                                    onChange={(e) => setEmail(e.target.value)}
+                                />
+                            </div>
+
+                            <button
+                                type="submit"
+                                disabled={status === 'loading'}
+                                className="btn btn-primary w-full shadow-navy"
+                            >
+                                {status === 'loading' ? (
+                                    <span className="flex items-center justify-center">
+                                        <span className="spinner mr-2"></span>
+                                        Verifying...
+                                    </span>
+                                ) : (
+                                    'Verify Email'
+                                )}
+                            </button>
+                        </form>
+                    ) : (
+                        <form onSubmit={handleResetPassword} className="space-y-6">
+                            {status === 'error' && (
+                                <div className="p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+                                    {message}
+                                </div>
+                            )}
+
+                            <div className="bg-neutral-50 p-3 rounded-lg border border-neutral-200 mb-4 flex items-center justify-between">
+                                <span className="text-sm font-medium text-neutral-600">{email}</span>
+                                <button type="button" onClick={() => setStep(1)} className="text-xs text-primary-600 font-bold hover:underline">Change</button>
+                            </div>
+
+                            <div>
+                                <label className="label">Current Password</label>
+                                <input
+                                    type="password"
+                                    required
+                                    className="input"
+                                    placeholder="Enter current password"
+                                    value={currentPassword}
+                                    onChange={(e) => setCurrentPassword(e.target.value)}
+                                />
+                            </div>
+
+                            <div>
+                                <label className="label">New Password</label>
+                                <input
+                                    type="password"
+                                    required
+                                    className="input"
+                                    placeholder="At least 6 characters"
+                                    value={password}
+                                    onChange={(e) => setPassword(e.target.value)}
+                                />
+                            </div>
+
+                            <div>
+                                <label className="label">Confirm New Password</label>
+                                <input
+                                    type="password"
+                                    required
+                                    className="input"
+                                    placeholder="Re-enter new password"
+                                    value={confirmPassword}
+                                    onChange={(e) => setConfirmPassword(e.target.value)}
+                                />
+                            </div>
+
+                            <button
+                                type="submit"
+                                disabled={status === 'loading'}
+                                className="btn btn-primary w-full shadow-navy"
+                            >
+                                {status === 'loading' ? (
+                                    <span className="flex items-center justify-center">
+                                        <span className="spinner mr-2"></span>
+                                        Saving...
+                                    </span>
+                                ) : (
+                                    'Update Password'
+                                )}
+                            </button>
+                        </form>
+                    )}
+                </div>
+
+                {status !== 'success' && (
+                    <div className="text-center mt-6">
+                        <Link href="/login" className="text-sm text-neutral-500 hover:text-neutral-700 inline-flex items-center space-x-1">
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                            </svg>
+                            <span>Back to login</span>
+                        </Link>
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+}
