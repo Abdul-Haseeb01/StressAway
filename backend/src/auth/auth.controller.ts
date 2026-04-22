@@ -1,5 +1,5 @@
 // Authentication Controller
-import { Controller, Post, Get, Put, Body, UseGuards, UseInterceptors, UploadedFile, BadRequestException } from '@nestjs/common';
+import { Controller, Post, Get, Put, Delete, Body, UseGuards, UseInterceptors, UploadedFile, BadRequestException } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { extname } from 'path';
@@ -123,5 +123,15 @@ export class AuthController {
         } catch (error) {
             throw new BadRequestException('Failed to update avatar in database');
         }
+    }
+
+    /**
+     * Delete current user account
+     * DELETE /api/auth/account
+     */
+    @UseGuards(JwtAuthGuard)
+    @Delete('account')
+    async deleteAccount(@CurrentUser() user: any) {
+        return this.authService.deleteAccount(user.userId);
     }
 }

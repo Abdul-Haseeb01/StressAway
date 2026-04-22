@@ -3,7 +3,8 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Header from '@/components/Header';
-import { getConnections, getPatientDetails, approveConnection, rejectConnection, getMessages, sendMessage, getUnreadCounts, getSosContacts, approveSosContact, rejectSosContact, removeSosContact, getReceivedSosAlerts, deleteConnection } from '@/utils/api';
+import { getConnections, getPatientDetails, approveConnection, rejectConnection, getMessages, sendMessage, getUnreadCounts, getSosContacts, approveSosContact, rejectSosContact, removeSosContact, getReceivedSosAlerts, deleteConnection, getProfile, deleteAccount } from '@/utils/api';
+import { getStoredUser } from '@/utils/storage';
 import { useAlert } from '@/context/AlertContext';
 import {
     Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, Filler, ArcElement
@@ -16,6 +17,8 @@ export default function PsychologistDashboard() {
     const router = useRouter();
     const { showAlert, showConfirm } = useAlert();
     const [isAuthorized, setIsAuthorized] = useState(false);
+    const [verificationStatus, setVerificationStatus] = useState<string | null>(null);
+    const [showVerificationPending, setShowVerificationPending] = useState(false);
     const [loading, setLoading] = useState(true);
     const [patients, setPatients] = useState<any[]>([]);
     const [pendingRequests, setPendingRequests] = useState<any[]>([]);
@@ -42,15 +45,32 @@ export default function PsychologistDashboard() {
     const verifyPsychologistAndFetch = async (isSilent = false) => {
         try {
             if (!isSilent) setLoading(true);
-            const userData = localStorage.getItem('user');
-            if (!userData) {
+            const parsedUser = getStoredUser();
+            if (!parsedUser) {
                 if (!isSilent) router.push('/login');
                 return;
             }
-            const parsedUser = JSON.parse(userData);
             if (parsedUser.role !== 'psychologist') {
                 if (!isSilent) router.push('/dashboard'); // Strict RBAC Client Redirect
                 return;
+            }
+
+            // Sync from backend
+            try {
+                const profileResponse = await getProfile();
+                const vStatus = profileResponse.profile?.verification_status || 'pending';
+                setVerificationStatus(vStatus);
+                
+                if (vStatus === 'pending') {
+                    setShowVerificationPending(true);
+                } else {
+                    setShowVerificationPending(false);
+                }
+            } catch (err) {
+               // Fallback to local storage if API fails
+               if (parsedUser.verification_status === 'pending') {
+                   setShowVerificationPending(true);
+               } 
             }
 
             setIsAuthorized(true);
@@ -96,7 +116,7 @@ export default function PsychologistDashboard() {
 
         // Real-time Dashboard Polling (every 5 seconds)
         const pollInterval = setInterval(() => {
-            if (localStorage.getItem('token')) {
+            if ((localStorage.getItem('token') || sessionStorage.getItem('token'))) {
                 verifyPsychologistAndFetch(true);
             }
         }, 5000);
@@ -282,6 +302,26 @@ export default function PsychologistDashboard() {
         }
     };
 
+    const handleLogout = () => {
+        localStorage.removeItem('token');
+        sessionStorage.removeItem('token');
+        localStorage.removeItem('user');
+        sessionStorage.removeItem('user');
+        router.push('/login');
+    };
+
+    const handleDeleteAccount = async () => {
+        if (await showConfirm('Are you absolutely sure you want to delete your account? This action is permanent and cannot be undone.')) {
+            try {
+                await deleteAccount();
+                showAlert('Your account has been successfully deleted.', 'success');
+                handleLogout();
+            } catch (error) {
+                showAlert('Failed to delete account. Please contact support.', 'error');
+            }
+        }
+    };
+
     const openChat = async (patientConnectionId: string) => {
         // Need to find the connection object for the selected patient
         const connectionObject = patients.find(p => p.id === patientConnectionId);
@@ -322,16 +362,47 @@ export default function PsychologistDashboard() {
 
     if (loading) {
         return (
-            <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-neutral-50 via-white to-primary-50/30">
-                <div className="text-center">
-                    <div className="w-16 h-16 border-4 border-primary-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-                    <p className="text-neutral-600 font-medium">Loading your dashboard...</p>
+            <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center animate-fade-in">
+                <div className="spinner border-primary-600 w-12 h-12 mb-4"></div>
+                <p className="text-neutral-500 font-medium">Loading psychologist dashboard...</p>
+            </div>
+        );
+    }
+
+    if (verificationStatus === 'rejected') {
+        return (
+            <div className="min-h-screen bg-neutral-900 flex flex-col items-center justify-center p-4">
+                <div className="bg-white p-8 rounded-2xl shadow-2xl max-w-md w-full animate-scale-up border-t-8 border-red-500 text-center">
+                    <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                         <svg className="w-8 h-8 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </div>
+                    <h2 className="text-2xl font-bold text-neutral-900 mb-2">Application Rejected</h2>
+                    <p className="text-neutral-600 mb-6 font-medium">We're sorry, but your application to join as a verifying psychologist has been declined by the administration.</p>
+                    <p className="text-sm text-neutral-500 mb-8 border border-neutral-100 p-4 bg-neutral-50 rounded-lg">Please ensure that your qualifications and license numbers are fully accurate before reapplying.</p>
+                    <div className="flex flex-col space-y-3">
+                        <button
+                            onClick={() => router.push('/psychologist/onboarding')}
+                            className="bg-primary-600 hover:bg-primary-700 text-white rounded-lg px-4 py-2.5 font-bold transition-all"
+                        >
+                            Update Details & Reapply
+                        </button>
+                        <button
+                            onClick={handleDeleteAccount}
+                            className="bg-white hover:bg-red-50 text-red-600 border border-red-200 rounded-lg px-4 py-2.5 font-bold transition-all shadow-sm"
+                        >
+                            Delete My Account Permanent
+                        </button>
+                        <button
+                            onClick={handleLogout}
+                            className="text-neutral-500 hover:text-red-600 font-semibold py-2.5 transition-colors"
+                        >
+                            Sign Out
+                        </button>
+                    </div>
                 </div>
             </div>
-            // <div className="min-h-screen bg-neutral-50 flex items-center justify-center">
-            //     <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
-            //     <p className="text-neutral-600 font-medium">Loading your dashboard...</p>
-            // </div>
         );
     }
 
@@ -373,6 +444,18 @@ export default function PsychologistDashboard() {
 
     return (
         <div className="min-h-screen flex flex-col bg-neutral-50 pt-20 relative z-10 px-4 md:px-0">
+            {showVerificationPending && (
+                <div className="fixed inset-0 bg-neutral-900/60 z-[100] flex items-center justify-center p-4 backdrop-blur-sm">
+                    <div className="bg-white rounded-2xl shadow-xl p-8 max-w-sm w-full text-center">
+                        <div className="w-16 h-16 bg-orange-100 text-orange-500 rounded-full flex items-center justify-center mx-auto mb-4 text-3xl">
+                            ⏳
+                        </div>
+                        <h3 className="text-xl font-bold text-neutral-900 mb-2">Verification Pending</h3>
+                        <p className="text-neutral-600 mb-6 text-sm">Your psychologist profile is currently under review by an administrator. You will gain access to this dashboard once approved.</p>
+                        <button onClick={handleLogout} className="btn btn-primary w-full text-white bg-neutral-900 hover:bg-black font-bold">Return Home (Logout)</button>
+                    </div>
+                </div>
+            )}
             <Header />
             <main className="flex-1 w-full max-w-7xl mx-auto p-4 md:px-8 md:pt-4 md:pb-12">
                 <div className="flex flex-col sm:flex-row justify-between items-center mb-8 gap-4">
@@ -827,3 +910,4 @@ export default function PsychologistDashboard() {
         </div>
     );
 }
+

@@ -47,7 +47,7 @@ export default function PsychologistsPage() {
     const [sendingMsg, setSendingMsg] = useState(false);
 
     useEffect(() => {
-        const token = localStorage.getItem('token');
+        const token = (localStorage.getItem('token') || sessionStorage.getItem('token'));
         const uStr = localStorage.getItem('user');
         if (!token || !uStr) { router.push('/login'); return; }
         const u = JSON.parse(uStr);
@@ -498,3 +498,4 @@ export default function PsychologistsPage() {
         </div>
     );
 }
+

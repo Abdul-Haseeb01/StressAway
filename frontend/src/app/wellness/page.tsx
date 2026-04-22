@@ -62,7 +62,7 @@ export default function Wellness() {
 
     // Auth & Navigation Effect
     useEffect(() => {
-        const token = localStorage.getItem('token');
+        const token = (localStorage.getItem('token') || sessionStorage.getItem('token'));
         const userDataStr = localStorage.getItem('user');
 
         if (!token || !userDataStr) {
@@ -398,3 +398,4 @@ export default function Wellness() {
         </div>
     );
 }
+

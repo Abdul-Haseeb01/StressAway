@@ -15,7 +15,7 @@ export default function SosAlertModal() {
     const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
     const fetchUnread = async () => {
-        const token = localStorage.getItem('token');
+        const token = (localStorage.getItem('token') || sessionStorage.getItem('token'));
         if (!token) return;
         try {
             const data = await getUnreadSosNotifications();
@@ -128,3 +128,4 @@ export default function SosAlertModal() {
         </div>
     );
 }
+

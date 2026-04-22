@@ -3,7 +3,11 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Header from '@/components/Header';
-import { getAdminStats, getAllUsers, updateUserRole, deactivateUser, activateUser, getContactMessages, updateContactStatus } from '@/utils/api';
+import { 
+    getAdminStats, getAllUsers, updateUserRole, deactivateUser, activateUser, 
+    getContactMessages, updateContactStatus, updateUserProfile
+} from '@/utils/api';
+import { getStoredToken, getStoredUser } from '@/utils/storage';
 import { useAlert } from '@/context/AlertContext';
 import {
     Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, Filler, ArcElement
@@ -40,56 +44,68 @@ export default function AdminDashboard() {
     const [isEditingProfile, setIsEditingProfile] = useState(false);
     const [editFormData, setEditFormData] = useState<any>({});
 
-    useEffect(() => {
-        const verifyAdminAndFetch = async () => {
-            try {
-                const userData = localStorage.getItem('user');
-                if (!userData) {
-                    router.push('/login');
-                    return;
-                }
-                const parsedUser = JSON.parse(userData);
-                setCurrentUser(parsedUser);
-                if (parsedUser.role !== 'admin' && parsedUser.role !== 'super_admin') {
-                    router.push('/dashboard'); // Strict RBAC Client Redirect
-                    return;
-                }
+    const calculateAge = (dob: string) => {
+        if (!dob) return 'N/A';
+        const birthDate = new Date(dob);
+        const today = new Date();
+        let age = today.getFullYear() - birthDate.getFullYear();
+        const m = today.getMonth() - birthDate.getMonth();
+        if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+            age--;
+        }
+        return age;
+    };
 
-                setIsAuthorized(true);
-
-                const [statsRes, usersRes] = await Promise.all([
-                    getAdminStats(),
-                    getAllUsers(),
-                ]);
-
-                setStats(statsRes);
-                setUsers(usersRes);
-
-                // Fetch Questionnaire Questions
-                const qRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api'}/admin/questionnaire/questions`, {
-                    headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
-                });
-                if (qRes.ok) {
-                    const qData = await qRes.json();
-                    setQuestions(qData.sort((a: any, b: any) => (a.question_order || 0) - (b.question_order || 0)));
-                }
-
-                // Fetch Contact Messages (Help Center)
-                try {
-                    const mData = await getContactMessages();
-                    setContactMessages(mData.sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()));
-                } catch (err) {
-                    console.error("Failed to fetch contact messages", err);
-                }
-
-            } catch (error) {
-                console.error("Admin error:", error);
-            } finally {
-                setLoading(false);
+    const fetchAdminData = async (isRefresh = false) => {
+        try {
+            if (!isRefresh) setLoading(true);
+            const parsedUser = getStoredUser();
+            if (!parsedUser) {
+                router.push('/login');
+                return;
             }
-        };
+            setCurrentUser(parsedUser);
+            if (parsedUser.role !== 'admin' && parsedUser.role !== 'super_admin') {
+                router.push('/dashboard'); // Strict RBAC Client Redirect
+                return;
+            }
 
-        verifyAdminAndFetch();
+            setIsAuthorized(true);
+
+            const [statsRes, usersRes] = await Promise.all([
+                getAdminStats(),
+                getAllUsers(),
+            ]);
+
+            setStats(statsRes);
+            setUsers(usersRes);
+
+            // Fetch Questionnaire Questions
+            const qRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api'}/admin/questionnaire/questions`, {
+                headers: { Authorization: `Bearer ${getStoredToken()}` }
+            });
+            if (qRes.ok) {
+                const qData = await qRes.json();
+                setQuestions(qData.sort((a: any, b: any) => (a.question_order || 0) - (b.question_order || 0)));
+            }
+
+            // Fetch Contact Messages (Help Center)
+            try {
+                const mData = await getContactMessages();
+                setContactMessages(mData.sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()));
+            } catch (err) {
+                console.error("Failed to fetch contact messages", err);
+            }
+
+        } catch (error) {
+            console.error("Admin error:", error);
+        } finally {
+            if (!isRefresh) setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchAdminData();
     }, [router]);
 
     const handleRoleChange = async (userId: string, targetRole: string) => {
@@ -120,6 +136,21 @@ export default function AdminDashboard() {
         }
     }
 
+    const handleVerifyPsychologist = async (id: string, status: string) => {
+        if (await showConfirm(`Are you sure you want to ${status === 'approved' ? 'approve' : 'reject'} this psychologist?`)) {
+            try {
+                await updateUserProfile(id, { verification_status: status });
+                showAlert(`Psychologist ${status} successfully.`, 'success');
+                // Re-fetch details to update UI
+                handleUserClick(id);
+                // Also trigger stats refresh in background
+                fetchAdminData(true);
+            } catch (error: any) {
+                showAlert(error.response?.data?.message || 'Failed to update verification status.', 'error');
+            }
+        }
+    };
+
     const canEditUser = (targetUser: any) => {
         if (!currentUser || !currentUser.id) return false;
         if (!targetUser || !targetUser.id) return false; // Fixed TypeError: undefined object parsing
@@ -141,7 +172,7 @@ export default function AdminDashboard() {
         setDetailsLoading(true);
         setIsEditingProfile(false);
         try {
-            const token = localStorage.getItem('token');
+            const token = (localStorage.getItem('token') || sessionStorage.getItem('token'));
             const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api'}/admin/users/${userId}`, {
                 headers: {
                     Authorization: `Bearer ${token}`
@@ -199,7 +230,7 @@ export default function AdminDashboard() {
 
     const handleQuestionSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        const token = localStorage.getItem('token');
+        const token = (localStorage.getItem('token') || sessionStorage.getItem('token'));
         const method = editingQuestion?.id ? 'PUT' : 'POST';
         const url = `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api'}/admin/questionnaire/questions${editingQuestion?.id ? `/${editingQuestion.id}` : ''}`;
 
@@ -224,7 +255,7 @@ export default function AdminDashboard() {
 
     const deleteQuestion = async (id: string) => {
         if (!await showConfirm('Are you sure you want to delete this question?')) return;
-        const token = localStorage.getItem('token');
+        const token = (localStorage.getItem('token') || sessionStorage.getItem('token'));
         try {
             await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api'}/admin/questionnaire/questions/${id}`, {
                 method: 'DELETE',
@@ -271,7 +302,7 @@ export default function AdminDashboard() {
     const handleProfileUpdate = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
-            const token = localStorage.getItem('token');
+            const token = (localStorage.getItem('token') || sessionStorage.getItem('token'));
             const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api'}/admin/users/${selectedUser}/profile`, {
                 method: 'PUT',
                 headers: {
@@ -419,6 +450,9 @@ export default function AdminDashboard() {
                                             className={`flex-1 sm:flex-none px-3 py-1.5 sm:px-4 rounded-md text-sm font-medium transition-colors ${activeTab === 'psychologists' ? 'bg-white text-primary-700 shadow-sm' : 'text-neutral-500 hover:text-neutral-700'}`}
                                         >
                                             Psychologists
+                                            {users.some(u => u.role === 'psychologist' && u.profiles?.verification_status === 'pending') && (
+                                                <span className="ml-2 w-2 h-2 bg-red-500 rounded-full inline-block"></span>
+                                            )}
                                         </button>
                                         <button
                                             onClick={() => setActiveTab('admins')}
@@ -466,35 +500,49 @@ export default function AdminDashboard() {
                                                         </span>
                                                     </td>
                                                     <td className="p-4">
-                                                        <span className={`px-2 py-1 rounded-md text-xs font-bold ${u.is_active ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                                                            {u.is_active ? 'ACTIVE' : 'INACTIVE'}
-                                                        </span>
+                                                        {!u.is_active ? (
+                                                            <span className="px-2 py-1 rounded-md text-xs font-bold bg-red-100 text-red-700">INACTIVE</span>
+                                                        ) : u.role === 'psychologist' ? (
+                                                            <span className={`px-2 py-1 rounded-md text-xs font-bold ${u.profiles?.verification_status === 'approved' ? 'bg-green-100 text-green-700' :
+                                                                u.profiles?.verification_status === 'rejected' ? 'bg-red-100 text-red-700' :
+                                                                    'bg-orange-100 text-orange-700'
+                                                                }`}>
+                                                                {u.profiles?.verification_status?.toUpperCase() || 'PENDING'}
+                                                            </span>
+                                                        ) : (
+                                                            <span className="px-2 py-1 rounded-md text-xs font-bold bg-green-100 text-green-700">ACTIVE</span>
+                                                        )}
                                                     </td>
                                                     <td className="p-4" onClick={(e) => e.stopPropagation()}>
-                                                        {canEditUser(u) ? (
-                                                            <div className="flex gap-2">
-                                                                <select
-                                                                    className="text-sm border-neutral-300 rounded-md bg-white p-1"
-                                                                    value={u.role || 'user'}
-                                                                    onChange={(e) => handleRoleChange(u.id, e.target.value)}
-                                                                >
-                                                                    <option value="user">User</option>
-                                                                    <option value="psychologist">Psych.</option>
-                                                                    <option value="admin">Admin</option>
-                                                                    {currentUser?.role === 'super_admin' && (
-                                                                        <option value="super_admin">Super Admin</option>
-                                                                    )}
-                                                                </select>
-                                                                <button
-                                                                    onClick={() => handleToggleActive(u.id, u.is_active)}
-                                                                    className={`text-xs px-2 py-1 rounded-md font-medium ${u.is_active ? 'text-red-600 bg-red-50 hover:bg-red-100' : 'text-green-600 bg-green-50 hover:bg-green-100'}`}
-                                                                >
-                                                                    {u.is_active ? 'Deactivate' : 'Activate'}
-                                                                </button>
-                                                            </div>
-                                                        ) : (
-                                                            <span className="text-xs text-neutral-400 font-medium italic">Restricted</span>
-                                                        )}
+                                                        <div className="flex items-center gap-2">
+                                                            {u.role === 'psychologist' && u.profiles?.verification_status === 'pending' && (
+                                                                <span className="px-2 py-1 bg-orange-100 text-orange-700 rounded-md text-[10px] font-bold uppercase mr-2 tracking-wider">Pending Verif.</span>
+                                                            )}
+                                                            {canEditUser(u) ? (
+                                                                <div className="flex gap-2">
+                                                                    <select
+                                                                        className="text-sm border-neutral-300 rounded-md bg-white p-1"
+                                                                        value={u.role || 'user'}
+                                                                        onChange={(e) => handleRoleChange(u.id, e.target.value)}
+                                                                    >
+                                                                        <option value="user">User</option>
+                                                                        <option value="psychologist">Psych.</option>
+                                                                        <option value="admin">Admin</option>
+                                                                        {currentUser?.role === 'super_admin' && (
+                                                                            <option value="super_admin">Super Admin</option>
+                                                                        )}
+                                                                    </select>
+                                                                    <button
+                                                                        onClick={() => handleToggleActive(u.id, u.is_active)}
+                                                                        className={`text-xs px-2 py-1 rounded-md font-medium ${u.is_active ? 'text-red-600 bg-red-50 hover:bg-red-100' : 'text-green-600 bg-green-50 hover:bg-green-100'}`}
+                                                                    >
+                                                                        {u.is_active ? 'Deactivate' : 'Activate'}
+                                                                    </button>
+                                                                </div>
+                                                            ) : (
+                                                                <span className="text-xs text-neutral-400 font-medium italic">Restricted</span>
+                                                            )}
+                                                        </div>
                                                     </td>
                                                 </tr>
                                             ))}
@@ -617,7 +665,12 @@ export default function AdminDashboard() {
                                     <h2 className="text-xl font-bold text-neutral-900">
                                         {selectedUserDetails?.profile?.full_name || 'User Summary'}
                                     </h2>
-                                    <span className="text-sm text-neutral-500 capitalize">{selectedUserDetails?.user?.role || 'User'} Profile</span>
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-sm text-neutral-500 capitalize">{selectedUserDetails?.user?.role || 'User'} Profile</span>
+                                        {selectedUserDetails?.user?.role === 'psychologist' && selectedUserDetails?.profile?.verification_status && (
+                                            <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${selectedUserDetails.profile.verification_status === 'approved' ? 'bg-green-100 text-green-700' : selectedUserDetails.profile.verification_status === 'rejected' ? 'bg-red-100 text-red-700' : 'bg-orange-100 text-orange-700'}`}>Verification {selectedUserDetails.profile.verification_status}</span>
+                                        )}
+                                    </div>
                                 </div>
                             </div>
 
@@ -642,6 +695,34 @@ export default function AdminDashboard() {
                             <div className="p-6 md:p-8 space-y-8">
 
                                 {/* Profile Information Section */}
+                                {selectedUserDetails.user?.role === 'psychologist' && (
+                                    <section>
+                                        <div className={`${selectedUserDetails.profile?.verification_status === 'approved' ? 'bg-green-50 border-green-200' : selectedUserDetails.profile?.verification_status === 'rejected' ? 'bg-red-50 border-red-200' : 'bg-orange-50 border-orange-200'} border rounded-xl p-6 mb-2 mt-4 shadow-sm`}>
+                                            <h3 className={`text-lg font-bold mb-4 border-b pb-2 ${selectedUserDetails.profile?.verification_status === 'approved' ? 'text-green-900 border-green-200' : selectedUserDetails.profile?.verification_status === 'rejected' ? 'text-red-900 border-red-200' : 'text-orange-900 border-orange-200'}`}>
+                                                Psychologist Credentials ({selectedUserDetails.profile?.verification_status?.toUpperCase() || 'PENDING'})
+                                            </h3>
+                                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-2">
+                                                <div><span className={`text-xs font-bold uppercase tracking-wider block mb-1 ${selectedUserDetails.profile?.verification_status === 'approved' ? 'text-green-600' : selectedUserDetails.profile?.verification_status === 'rejected' ? 'text-red-600' : 'text-orange-600'}`}>Qualifications</span><span className="text-neutral-900 font-bold">{selectedUserDetails.profile?.qualifications || 'Not provided'}</span></div>
+                                                <div><span className={`text-xs font-bold uppercase tracking-wider block mb-1 ${selectedUserDetails.profile?.verification_status === 'approved' ? 'text-green-600' : selectedUserDetails.profile?.verification_status === 'rejected' ? 'text-red-600' : 'text-orange-600'}`}>Experience Years</span><span className="text-neutral-900 font-bold">{selectedUserDetails.profile?.experience_years || 'Not provided'}</span></div>
+                                                <div><span className={`text-xs font-bold uppercase tracking-wider block mb-1 ${selectedUserDetails.profile?.verification_status === 'approved' ? 'text-green-600' : selectedUserDetails.profile?.verification_status === 'rejected' ? 'text-red-600' : 'text-orange-600'}`}>License Number</span><span className="text-neutral-900 font-bold">{selectedUserDetails.profile?.license_number || 'Not provided'}</span></div>
+                                            </div>
+                                            
+                                            {selectedUserDetails.profile?.verification_status === 'pending' && (
+                                                <div className="flex gap-3 mt-4 pt-4 border-t border-orange-200">
+                                                    <button onClick={() => handleVerifyPsychologist(selectedUserDetails.user.id, 'approved')} className="bg-orange-600 hover:bg-orange-700 text-white px-6 py-2.5 rounded-lg text-sm font-bold shadow-md transition-colors flex items-center gap-2">
+                                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                                                        Approve Practitioner
+                                                    </button>
+                                                    <button onClick={() => handleVerifyPsychologist(selectedUserDetails.user.id, 'rejected')} className="bg-white hover:bg-red-50 text-red-600 border border-red-200 px-6 py-2.5 rounded-lg text-sm font-bold shadow-sm transition-colors flex items-center gap-2">
+                                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                                                        Reject Application
+                                                    </button>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </section>
+                                )}
+
                                 <section>
                                     <h3 className="text-lg font-bold text-primary-900 mb-4 border-b border-neutral-100 pb-2">Profile Information</h3>
                                     {isEditingProfile ? (
@@ -666,12 +747,17 @@ export default function AdminDashboard() {
                                             </div>
                                             <div>
                                                 <label className="block text-sm font-medium text-neutral-700 mb-1">Date of Birth</label>
-                                                <input
-                                                    type="date"
-                                                    value={editFormData.date_of_birth || ''}
-                                                    onChange={e => setEditFormData({ ...editFormData, date_of_birth: e.target.value })}
-                                                    className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
-                                                />
+                                                <div className="relative">
+                                                    <input
+                                                        type="date"
+                                                        value={editFormData.date_of_birth || ''}
+                                                        onChange={e => setEditFormData({ ...editFormData, date_of_birth: e.target.value })}
+                                                        className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:ring-primary-500 focus:border-primary-500 modern-date-picker"
+                                                    />
+                                                    <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-neutral-400 text-xs">
+                                                        📅
+                                                    </div>
+                                                </div>
                                             </div>
                                             <div>
                                                 <label className="block text-sm font-medium text-neutral-700 mb-1">Gender</label>
@@ -726,6 +812,8 @@ export default function AdminDashboard() {
                                             <div><span className="text-sm font-medium text-neutral-400 block mb-1">Phone Number</span><span className="text-neutral-900">{selectedUserDetails.profile?.phone || 'Not provided'}</span></div>
                                             <div><span className="text-sm font-medium text-neutral-400 block mb-1">Member Since</span><span className="text-neutral-900">{new Date(selectedUserDetails.user?.created_at).toLocaleDateString()}</span></div>
                                             <div><span className="text-sm font-medium text-neutral-400 block mb-1">Date of Birth</span><span className="text-neutral-900">{selectedUserDetails.profile?.date_of_birth ? new Date(selectedUserDetails.profile.date_of_birth).toLocaleDateString() : 'Not provided'}</span></div>
+                                            <div><span className="text-sm font-medium text-neutral-400 block mb-1">Age</span><span className="text-neutral-900">{calculateAge(selectedUserDetails.profile?.date_of_birth)} years</span></div>
+                                            <div><span className="text-sm font-medium text-neutral-400 block mb-1">Gender Identity</span><span className="text-neutral-900 capitalize">{selectedUserDetails.profile?.gender || 'Not provided'}</span></div>
                                             <div><span className="text-sm font-medium text-neutral-400 block mb-1">Emergency Contact</span><span className="text-neutral-900">{selectedUserDetails.profile?.emergency_contact_name || 'None'} <br /> {selectedUserDetails.profile?.emergency_contact_phone || ''}</span></div>
                                             <div className="sm:col-span-2 md:col-span-3">
                                                 <span className="text-sm font-medium text-neutral-400 block mb-1">Bio / Internal Notes</span>
@@ -958,3 +1046,4 @@ export default function AdminDashboard() {
         </div>
     );
 }
+

@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { getProfile, getConnections, getFamilyConnections } from '@/utils/api';
+import { getStoredToken, getStoredUser, clearStorage, updateStoredUser } from '@/utils/storage';
 
 export default function Header() {
     const router = useRouter();
@@ -28,24 +29,19 @@ export default function Header() {
 
     useEffect(() => {
         const loadUserFromStorage = () => {
-            const userData = localStorage.getItem('user');
-            if (userData) {
-                setUser(JSON.parse(userData));
-            } else {
-                setUser(null);
-            }
+            const userData = getStoredUser();
+            setUser(userData);
         };
 
         const fetchLatestProfile = async () => {
             try {
-                const token = localStorage.getItem('token');
+                const token = getStoredToken();
                 if (!token) return;
 
                 const data = await getProfile();
                 const profile = data.profile || {};
 
-                const currentUserStr = localStorage.getItem('user');
-                let currentUser = currentUserStr ? JSON.parse(currentUserStr) : {};
+                const currentUser = getStoredUser() || {};
 
                 const updatedUser = {
                     ...currentUser,
@@ -56,7 +52,7 @@ export default function Header() {
                     avatar_url: profile.avatar_url || currentUser.avatar_url,
                 };
 
-                localStorage.setItem('user', JSON.stringify(updatedUser));
+                updateStoredUser(updatedUser);
                 setUser(updatedUser);
             } catch (error) {
                 console.error("Header profile fetch error:", error);
@@ -74,7 +70,7 @@ export default function Header() {
 
         // 4. Periodic background check for role/status changes (30 seconds)
         const sessionInterval = setInterval(() => {
-            const token = localStorage.getItem('token');
+            const token = getStoredToken();
             if (token && window.location.pathname !== '/login') {
                 getProfile().catch(() => {
                     // The 401 Error Interceptor in api.ts will handle the logout and alert
@@ -83,7 +79,7 @@ export default function Header() {
         }, 30000);
 
         // 5. Initial notifications fetch
-        const token = localStorage.getItem('token');
+        const token = getStoredToken();
         if (token) fetchNotifications();
 
         return () => {
@@ -94,9 +90,8 @@ export default function Header() {
 
     const fetchNotifications = async () => {
         try {
-            const userData = localStorage.getItem('user');
-            if (!userData) return;
-            const u = JSON.parse(userData);
+            const u = getStoredUser();
+            if (!u) return;
 
             const [fam, psych] = await Promise.all([
                 getFamilyConnections(),
@@ -115,20 +110,19 @@ export default function Header() {
 
     // Re-fetch when pathname changes to update dots
     useEffect(() => {
-        const token = localStorage.getItem('token');
+        const token = getStoredToken();
         if (token) fetchNotifications();
     }, [pathname]);
 
     // Proactively verify the session EVERY time the user navigates to a new page
     // This catches role/status changes immediately on Next.js SPA transitions
     useEffect(() => {
-        const token = localStorage.getItem('token');
+        const token = getStoredToken();
         if (token && pathname !== '/login' && pathname !== '/register' && pathname !== '/') {
             getProfile()
                 .then(data => {
                     const profile = data.profile || {};
-                    const currentUserStr = localStorage.getItem('user');
-                    let currentUser = currentUserStr ? JSON.parse(currentUserStr) : {};
+                    const currentUser = getStoredUser() || {};
 
                     // Optionally update the local user info if it changed
                     if (data.role !== currentUser.role || data.id !== currentUser.id) {
@@ -140,7 +134,8 @@ export default function Header() {
                             full_name: profile.full_name || currentUser.full_name,
                             avatar_url: profile.avatar_url || currentUser.avatar_url,
                         };
-                        localStorage.setItem('user', JSON.stringify(updatedUser));
+                        
+                        updateStoredUser(updatedUser);
                         setUser(updatedUser);
                     }
                 })
@@ -151,8 +146,7 @@ export default function Header() {
     }, [pathname]);
 
     const handleLogout = () => {
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
+        clearStorage();
         router.push('/');
     };
 
@@ -368,3 +362,4 @@ export default function Header() {
         </header>
     );
 }
+

@@ -154,6 +154,36 @@
 
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
+/* Modern Date Picker Reset & Premium Styling */
+.modern-date-picker {
+    position: relative;
+    cursor: pointer;
+    background-image: none !important;
+}
+
+.modern-date-picker::-webkit-calendar-picker-indicator {
+    background: transparent;
+    bottom: 0;
+    color: transparent;
+    cursor: pointer;
+    height: auto;
+    left: 0;
+    position: absolute;
+    right: 0;
+    top: 0;
+    width: auto;
+    opacity: 0;
+}
+
+.modern-date-picker:focus {
+    box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.1);
+    border-color: #4f46e5;
+}
+
+.modern-date-picker:hover {
+    border-color: #94a3b8;
+}
+
 @layer base {
   body {
     @apply bg-neutral-50 text-neutral-900 font-sans;

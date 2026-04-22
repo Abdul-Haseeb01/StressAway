@@ -25,6 +25,16 @@ CREATE TABLE public.connections (
   CONSTRAINT connections_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id),
   CONSTRAINT connections_connected_user_id_fkey FOREIGN KEY (connected_user_id) REFERENCES public.users(id)
 );
+CREATE TABLE public.contact_messages (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  full_name text NOT NULL,
+  email text NOT NULL,
+  subject text NOT NULL,
+  message text NOT NULL,
+  status text DEFAULT 'unread'::text CHECK (status = ANY (ARRAY['unread'::text, 'read'::text, 'archived'::text])),
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT contact_messages_pkey PRIMARY KEY (id)
+);
 CREATE TABLE public.direct_messages (
   id uuid NOT NULL DEFAULT uuid_generate_v4(),
   connection_id uuid,
@@ -76,6 +86,10 @@ CREATE TABLE public.profiles (
   emergency_contact_phone character varying,
   created_at timestamp with time zone DEFAULT now(),
   updated_at timestamp with time zone DEFAULT now(),
+  qualifications text,
+  experience_years integer,
+  license_number character varying,
+  verification_status character varying DEFAULT 'approved'::character varying CHECK (verification_status::text = ANY (ARRAY['pending'::character varying, 'approved'::character varying, 'rejected'::character varying]::text[])),
   CONSTRAINT profiles_pkey PRIMARY KEY (id),
   CONSTRAINT profiles_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
 );
@@ -133,15 +147,4 @@ CREATE TABLE public.users (
   created_at timestamp with time zone DEFAULT now(),
   updated_at timestamp with time zone DEFAULT now(),
   CONSTRAINT users_pkey PRIMARY KEY (id)
-);
-
-CREATE TABLE public.contact_messages (
-  id uuid NOT NULL DEFAULT uuid_generate_v4(),
-  full_name text NOT NULL,
-  email text NOT NULL,
-  subject text NOT NULL,
-  message text NOT NULL,
-  status text DEFAULT 'unread' CHECK (status IN ('unread', 'read', 'archived')),
-  created_at timestamp with time zone DEFAULT now(),
-  CONSTRAINT contact_messages_pkey PRIMARY KEY (id)
 );

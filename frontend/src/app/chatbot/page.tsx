@@ -21,7 +21,7 @@ export default function ChatbotPage() {
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
-        const token = localStorage.getItem('token');
+        const token = (localStorage.getItem('token') || sessionStorage.getItem('token'));
         const userDataStr = localStorage.getItem('user');
 
         if (!token || !userDataStr) {
@@ -201,3 +201,4 @@ export default function ChatbotPage() {
         </div>
     );
 }
+

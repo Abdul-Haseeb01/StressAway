@@ -11,7 +11,7 @@ export default function SharedNavbar() {
     useEffect(() => {
         setMounted(true);
         const checkAuth = () => {
-            const token = localStorage.getItem('token');
+            const token = (localStorage.getItem('token') || sessionStorage.getItem('token'));
             setIsLoggedIn(!!token);
         };
         
@@ -25,3 +25,4 @@ export default function SharedNavbar() {
 
     return isLoggedIn ? <Header /> : <Navbar />;
 }
+

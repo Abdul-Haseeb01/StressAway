@@ -30,7 +30,7 @@ export default function FacialEmotion() {
 
     // ── Auth check ──────────────────────────────────────────────────────────
     useEffect(() => {
-        const token = localStorage.getItem('token');
+        const token = (localStorage.getItem('token') || sessionStorage.getItem('token'));
         const userDataStr = localStorage.getItem('user');
         if (!token || !userDataStr) { router.push('/login'); return; }
         const userData = JSON.parse(userDataStr);
@@ -169,7 +169,7 @@ export default function FacialEmotion() {
                         <p className="text-neutral-500 mb-8 leading-relaxed">
                             Because your facial scan indicates high stress ({parseFloat(result?.stress_score).toFixed(0)}%), we have automatically notified your emergency SOS contacts. Help is on the way.
                         </p>
-                        <button 
+                        <button
                             onClick={() => setShowSosPopup(false)}
                             className="w-full py-4 bg-red-600 hover:bg-red-700 text-white font-black rounded-2xl transition-all shadow-lg active:scale-95"
                         >
@@ -289,7 +289,7 @@ export default function FacialEmotion() {
                                     {capturing && (
                                         <div className="absolute inset-0 bg-black/60 backdrop-blur-sm flex flex-col items-center justify-center z-20">
                                             <div className="w-12 h-12 border-4 border-primary-400 border-t-transparent rounded-full animate-spin mb-3" />
-                                            <span className="text-white font-semibold animate-pulse">Analysing…</span>
+                                            <span className="text-white font-semibold animate-pulse">Analyzing…</span>
                                         </div>
                                     )}
                                 </div>
@@ -332,7 +332,7 @@ export default function FacialEmotion() {
                                         {/* Stress score 0-100 */}
                                         <div className={`rounded-xl p-6 text-center flex-1 flex flex-col items-center justify-center border
                                             ${result.stress_score > 70 ? 'bg-red-50 border-red-200' :
-                                              result.stress_score > 40 ? 'bg-orange-50 border-orange-200' : 'bg-green-50 border-green-200'}`}>
+                                                result.stress_score > 40 ? 'bg-orange-50 border-orange-200' : 'bg-green-50 border-green-200'}`}>
                                             <div className={`text-xs font-bold uppercase tracking-widest mb-3
                                                 ${result.stress_score > 70 ? 'text-red-500' : result.stress_score > 40 ? 'text-orange-500' : 'text-green-600'}`}>
                                                 Estimated Stress Score
@@ -344,7 +344,7 @@ export default function FacialEmotion() {
                                             </div>
                                             <div className={`text-sm font-semibold px-4 py-2 rounded-full
                                                 ${result.stress_score > 70 ? 'bg-red-100 text-red-700' :
-                                                  result.stress_score > 40 ? 'bg-orange-100 text-orange-700' : 'bg-green-100 text-green-700'}`}>
+                                                    result.stress_score > 40 ? 'bg-orange-100 text-orange-700' : 'bg-green-100 text-green-700'}`}>
                                                 {result.stress_score > 70 ? '⚠ High Stress' : result.stress_score > 40 ? '~ Moderate Stress' : '✓ Low Stress'}
                                             </div>
                                         </div>
@@ -389,3 +389,4 @@ export default function FacialEmotion() {
         </div>
     );
 }
+

@@ -8,14 +8,14 @@ const api = axios.create({
     },
 });
 
+import { getStoredToken, clearStorage } from './storage';
+
 // Request interceptor to add auth token
 api.interceptors.request.use(
     (config) => {
-        if (typeof window !== 'undefined') {
-            const token = localStorage.getItem('token');
-            if (token) {
-                config.headers.Authorization = `Bearer ${token}`;
-            }
+        const token = getStoredToken();
+        if (token) {
+            config.headers.Authorization = `Bearer ${token}`;
         }
         return config;
     },
@@ -31,8 +31,7 @@ api.interceptors.response.use(
         if (error.response?.status === 401) {
             // Unauthorized - clear token and redirect to login
             if (typeof window !== 'undefined') {
-                localStorage.removeItem('token');
-                localStorage.removeItem('user'); // Clear stale UI user state
+                clearStorage();
 
                 // Don't alert if we are already on the login page
                 if (window.location.pathname !== '/login' && window.location.pathname !== '/register' && window.location.pathname !== '/') {
@@ -80,6 +79,11 @@ export const getProfile = async () => {
 
 export const updateProfile = async (data: any) => {
     const response = await api.put('/auth/profile', data);
+    return response.data;
+};
+
+export const deleteAccount = async () => {
+    const response = await api.delete('/auth/account');
     return response.data;
 };
 
@@ -345,6 +349,11 @@ export const activateUser = async (id: string) => {
     return response.data;
 };
 
+export const updateUserProfile = async (id: string, profileData: any) => {
+    const response = await api.put(`/admin/users/${id}/profile`, profileData);
+    return response.data;
+};
+
 // ==================== PSYCHOLOGIST ====================
 export const getPatientDetails = async (id: string) => {
     const response = await api.get(`/psychologist/patients/${id}`);
@@ -373,3 +382,4 @@ export const updateContactStatus = async (id: string, status: string) => {
 };
 
 export default api;
+

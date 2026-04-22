@@ -71,7 +71,7 @@ export default function Home() {
     }, []);
 
     useEffect(() => {
-        const token = localStorage.getItem('token');
+        const token = (localStorage.getItem('token') || sessionStorage.getItem('token'));
         if (token) {
             router.push('/dashboard');
         }
@@ -516,3 +516,4 @@ export default function Home() {
         </div>
     );
 }
+

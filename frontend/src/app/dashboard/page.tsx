@@ -27,6 +27,7 @@ import {
     getFamilyConnectionCount,
     getProfile,
 } from '@/utils/api';
+import { getStoredToken, getStoredUser, updateStoredUser } from '@/utils/storage';
 
 ChartJS.register(
     CategoryScale,
@@ -65,8 +66,8 @@ export default function Dashboard() {
     const [questAvg10, setQuestAvg10] = useState(0);
 
     useEffect(() => {
-        const token = localStorage.getItem('token');
-        const userData = localStorage.getItem('user');
+        const token = getStoredToken();
+        const userData = getStoredUser();
 
         if (!token) {
             router.push('/login');
@@ -74,7 +75,7 @@ export default function Dashboard() {
         }
 
         if (userData) {
-            const parsedUser = JSON.parse(userData);
+            const parsedUser = userData;
 
             // Redirect Admins and Psychologists away from standard user dashboard
             if (parsedUser.role === 'admin' || parsedUser.role === 'super_admin') {
@@ -108,10 +109,11 @@ export default function Dashboard() {
             // Update user name in case localStorage didn't have it
             if (profileData && profileData.profile && profileData.profile.full_name) {
                 setUser((prev: any) => ({ ...prev, full_name: profileData.profile.full_name }));
-                const currentLocal = JSON.parse(localStorage.getItem('user') || '{}');
+                const currentLocal = getStoredUser() || {};
                 // Ensure name persists across refreshes
                 if (!currentLocal.full_name) {
-                    localStorage.setItem('user', JSON.stringify({ ...currentLocal, full_name: profileData.profile.full_name }));
+                    const updated = { ...currentLocal, full_name: profileData.profile.full_name };
+                    updateStoredUser(updated);
                 }
             }
 
@@ -152,13 +154,14 @@ export default function Dashboard() {
             ].sort((a, b) => a.date.getTime() - b.date.getTime());
 
             if (allLogs.length > 0) {
-                // Filter logs to only those from the last 7 days
-                const sevenDaysAgo = new Date();
-                sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-                const last7Days = allLogs.filter((log) => log.date >= sevenDaysAgo);
+                // Filter logs to only those from the last 15 days
+                const fifteenDaysAgo = new Date();
+                fifteenDaysAgo.setDate(fifteenDaysAgo.getDate() - 15);
+                const last15Days = allLogs.filter((log) => log.date >= fifteenDaysAgo);
 
-                // Fallback to last 5 if no data in last 7 days
-                const displayLogs = last7Days.length > 0 ? last7Days : allLogs.slice(-5);
+                // Fallback to show more points if recent data is sparse
+                // We show all logs in last 15 days, OR at least the last 10 logs total
+                const displayLogs = last15Days.length >= 5 ? last15Days : allLogs.slice(-15);
 
                 setTrendData({
                     labels: displayLogs.map((log) =>
@@ -314,7 +317,7 @@ export default function Dashboard() {
                 position: 'bottom' as const,
                 labels: {
                     padding: 15,
-                    font: { 
+                    font: {
                         size: 12,
                         weight: 'bold' as const
                     },
@@ -406,34 +409,26 @@ export default function Dashboard() {
 
                     {/* Stats Grid */}
                     <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 sm:gap-6 mb-8">
-                        <div className="stats-card from-primary-600 to-primary-700">
-                            <div className="text-xs sm:text-sm opacity-90 mb-1">Q Assessments</div>
-                            <div className="text-2xl sm:text-3xl font-bold">{stats.questionnaireCount}</div>
-                        </div>
-                        <div className="stats-card from-accent-500 to-accent-600">
-                            <div className="text-xs sm:text-sm opacity-90 mb-1">Facial Scans</div>
-                            <div className="text-2xl sm:text-3xl font-bold">{stats.facialScansCount}</div>
-                        </div>
-                        <div className="stats-card from-green-500 to-green-600">
-                            <div className="text-xs sm:text-sm opacity-90 mb-1">Avg Q Stress</div>
-                            <div className="text-2xl sm:text-3xl font-bold">
-                                {stats.avgQuestionnaireStress.toFixed(1)}
+                        {[
+                            { label: 'Questionnaire Assessments', value: stats.questionnaireCount, color: 'bg-blue-600' },
+                            { label: 'Facial Scans Analyzed', value: stats.facialScansCount, color: 'bg-violet-600' },
+                            { label: 'Avg Questionnaire Stress', value: stats.avgQuestionnaireStress.toFixed(1), color: 'bg-emerald-600' },
+                            { label: 'Avg Facial Stress Score', value: stats.avgFacialStress.toFixed(1), color: 'bg-orange-600' },
+                            { label: 'Connected Psychologists', value: stats.psychologistConnections, color: 'bg-indigo-600' },
+                            { label: 'Connected Family Members', value: stats.familyConnections, color: 'bg-pink-600' },
+                        ].map((stat, idx) => (
+                            <div
+                                key={idx}
+                                className={`${stat.color} rounded-xl p-5 text-white shadow-sm flex flex-col h-full min-h-[110px]`}
+                            >
+                                <div className="text-xs font-semibold opacity-90 mb-2 leading-tight uppercase tracking-wide">
+                                    {stat.label}
+                                </div>
+                                <div className="text-3xl font-bold mt-auto">
+                                    {stat.value}
+                                </div>
                             </div>
-                        </div>
-                        <div className="stats-card from-orange-500 to-orange-600">
-                            <div className="text-xs sm:text-sm opacity-90 mb-1">Avg F Stress</div>
-                            <div className="text-2xl sm:text-3xl font-bold">
-                                {stats.avgFacialStress.toFixed(1)}
-                            </div>
-                        </div>
-                        <div className="stats-card from-purple-500 to-purple-600">
-                            <div className="text-xs sm:text-sm opacity-90 mb-1">Psychologists</div>
-                            <div className="text-2xl sm:text-3xl font-bold">{stats.psychologistConnections}</div>
-                        </div>
-                        <div className="stats-card from-pink-500 to-pink-600">
-                            <div className="text-xs sm:text-sm opacity-90 mb-1">Family</div>
-                            <div className="text-2xl sm:text-3xl font-bold">{stats.familyConnections}</div>
-                        </div>
+                        ))}
                     </div>
 
                     {/* Charts Row */}
@@ -441,7 +436,7 @@ export default function Dashboard() {
                         {/* Stress Trend Chart */}
                         <div className="lg:col-span-2 card">
                             <h3 className="text-lg sm:text-xl font-semibold mb-4 text-neutral-900">
-                                7-Day Stress Trend
+                                15-Day Stress Trend
                             </h3>
                             <div className="h-64 sm:h-80">
                                 {trendData ? (
@@ -575,3 +570,4 @@ export default function Dashboard() {
         </>
     );
 }
+

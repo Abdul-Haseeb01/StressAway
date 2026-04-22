@@ -29,7 +29,7 @@ export default function SOS() {
     const [tab, setTab] = useState<'send' | 'contacts' | 'history'>('send');
 
     useEffect(() => {
-        const token = localStorage.getItem('token');
+        const token = (localStorage.getItem('token') || sessionStorage.getItem('token'));
         const userDataStr = localStorage.getItem('user');
         if (!token || !userDataStr) { router.push('/login'); return; }
         const u = JSON.parse(userDataStr);
@@ -429,3 +429,4 @@ export default function SOS() {
         </div>
     );
 }
+

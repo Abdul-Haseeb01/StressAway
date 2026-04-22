@@ -50,6 +50,7 @@ export class AuthService {
                 user_id: newUser[0].id,
                 full_name: full_name || null,
                 phone: phone || null,
+                verification_status: role === 'psychologist' ? 'pending' : 'approved',
             };
 
             await this.supabaseService.insert('profiles', profileData);
@@ -64,6 +65,7 @@ export class AuthService {
                 email: newUser[0].email,
                 role: newUser[0].role,
                 full_name: full_name || null,
+                verification_status: role === 'psychologist' ? 'pending' : 'approved',
             },
             access_token: token,
         };
@@ -106,7 +108,7 @@ export class AuthService {
         const { data: profile } = await this.supabaseService
             .getClient()
             .from('profiles')
-            .select('full_name, avatar_url')
+            .select('full_name, avatar_url, verification_status, phone, bio')
             .eq('user_id', user.id)
             .single();
 
@@ -117,6 +119,9 @@ export class AuthService {
                 role: user.role,
                 full_name: profile?.full_name || null,
                 avatar_url: profile?.avatar_url || null,
+                phone: profile?.phone || null,
+                bio: profile?.bio || null,
+                verification_status: profile?.verification_status || 'approved',
             },
             access_token: token,
         };
@@ -243,5 +248,23 @@ export class AuthService {
         };
 
         return this.jwtService.sign(payload);
+    }
+
+    /**
+     * Delete user account
+     */
+    async deleteAccount(userId: string) {
+        // Since database schema uses ON DELETE CASCADE, 
+        // deleting from 'users' will remove 'profiles' and related data.
+        const { error } = await this.supabaseService.getClient()
+            .from('users')
+            .delete()
+            .eq('id', userId);
+
+        if (error) {
+            throw new Error('Failed to delete user account');
+        }
+
+        return { message: 'Account deleted successfully', success: true };
     }
 }

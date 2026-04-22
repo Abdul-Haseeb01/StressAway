@@ -81,7 +81,7 @@ export default function FamilyPage() {
 
     // Auth
     useEffect(() => {
-        const token = localStorage.getItem('token');
+        const token = (localStorage.getItem('token') || sessionStorage.getItem('token'));
         const userStr = localStorage.getItem('user');
         if (!token || !userStr) { router.push('/login'); return; }
         const u = JSON.parse(userStr);
@@ -720,3 +720,4 @@ export default function FamilyPage() {
         </div>
     );
 }
+

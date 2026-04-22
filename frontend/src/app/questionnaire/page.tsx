@@ -48,7 +48,7 @@ export default function Questionnaire() {
     const [showSosPopup, setShowSosPopup] = useState(false);
 
     useEffect(() => {
-        const token = localStorage.getItem('token');
+        const token = (localStorage.getItem('token') || sessionStorage.getItem('token'));
         const userDataStr = localStorage.getItem('user');
         if (!token || !userDataStr) { router.push('/login'); return; }
         const userData = JSON.parse(userDataStr);
@@ -414,3 +414,4 @@ export default function Questionnaire() {
         </div>
     );
 }
+

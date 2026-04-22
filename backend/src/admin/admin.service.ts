@@ -11,22 +11,32 @@ export class AdminService {
      * Get platform statistics
      */
     async getPlatformStats() {
-        // Get total users by role
+        // Get total users by role and join profiles for verification status
         const { data: users } = await this.supabaseService
             .getClient()
             .from('users')
-            .select('role, is_active');
+            .select(`
+                role, 
+                is_active,
+                profiles(verification_status)
+            `);
+
+        const getActiveStatus = (u: any) => u.is_active === true || u.is_active === 1 || String(u.is_active) === 'true';
 
         const userStats = {
             total: users?.length || 0,
-            active: users?.filter(u => u.is_active === true || u.is_active === 1 || String(u.is_active) === 'true').length || 0,
+            active: users?.filter(u => getActiveStatus(u)).length || 0,
             by_role: {
                 user: users?.filter(u => String(u.role).toLowerCase().trim() === 'user').length || 0,
-                user_active: users?.filter(u => String(u.role).toLowerCase().trim() === 'user' && (u.is_active === true || u.is_active === 1 || String(u.is_active) === 'true')).length || 0,
+                user_active: users?.filter(u => String(u.role).toLowerCase().trim() === 'user' && getActiveStatus(u)).length || 0,
                 psychologist: users?.filter(u => String(u.role).toLowerCase().trim() === 'psychologist').length || 0,
-                psychologist_active: users?.filter(u => String(u.role).toLowerCase().trim() === 'psychologist' && (u.is_active === true || u.is_active === 1 || String(u.is_active) === 'true')).length || 0,
+                psychologist_active: users?.filter(u => 
+                    String(u.role).toLowerCase().trim() === 'psychologist' && 
+                    getActiveStatus(u) && 
+                    (Array.isArray(u.profiles) ? u.profiles[0]?.verification_status === 'approved' : (u.profiles as any)?.verification_status === 'approved')
+                ).length || 0,
                 admin: users?.filter(u => String(u.role).toLowerCase().trim() === 'admin' || String(u.role).toLowerCase().trim() === 'super_admin').length || 0,
-                admin_active: users?.filter(u => (String(u.role).toLowerCase().trim() === 'admin' || String(u.role).toLowerCase().trim() === 'super_admin') && (u.is_active === true || u.is_active === 1 || String(u.is_active) === 'true')).length || 0,
+                admin_active: users?.filter(u => (String(u.role).toLowerCase().trim() === 'admin' || String(u.role).toLowerCase().trim() === 'super_admin') && getActiveStatus(u)).length || 0,
             },
         };
 
@@ -91,7 +101,7 @@ export class AdminService {
         role,
         is_active,
         created_at,
-        profiles(full_name, phone)
+        profiles(full_name, phone, verification_status, qualifications, experience_years, license_number)
       `)
             .order('created_at', { ascending: false });
 

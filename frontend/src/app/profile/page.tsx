@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { getProfile, updateProfile, uploadAvatar } from '@/utils/api';
+import { getStoredToken, getStoredUser, updateStoredUser } from '@/utils/storage';
 import { useRouter } from 'next/navigation';
 
 export default function ProfilePage() {
@@ -28,11 +29,13 @@ export default function ProfilePage() {
         phone: '',
         date_of_birth: '',
         gender: '',
+        bio: '',
+        emergency_contact_phone: '',
         avatar_url: ''
     });
 
     useEffect(() => {
-        const token = localStorage.getItem('token');
+        const token = getStoredToken();
         if (!token) {
             router.push('/login');
             return;
@@ -50,8 +53,10 @@ export default function ProfilePage() {
                 full_name: profile.full_name || '',
                 email: data.email || '',
                 phone: profile.phone || '',
-                date_of_birth: profile.date_of_birth || '',
+                date_of_birth: profile.date_of_birth ? new Date(profile.date_of_birth).toISOString().split('T')[0] : '',
                 gender: profile.gender || '',
+                bio: profile.bio || '',
+                emergency_contact_phone: profile.emergency_contact_phone || '',
                 avatar_url: profile.avatar_url || ''
             });
         } catch (error) {
@@ -84,11 +89,13 @@ export default function ProfilePage() {
             setTimeout(() => setMessage({ text: '', type: '' }), 3000);
 
             // Optionally update user in localStorage
-            const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
-            localStorage.setItem('user', JSON.stringify({
+            const currentUser = getStoredUser() || {};
+            const updatedUser = {
                 ...currentUser,
                 avatar_url: result.avatar_url
-            }));
+            };
+            
+            updateStoredUser(updatedUser);
 
             // Notify other components (like Header) that the profile has updated
             if (typeof window !== 'undefined') {
@@ -119,11 +126,13 @@ export default function ProfilePage() {
             setIsEditing(false);
 
             // Also update local storage if name changed
-            const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
-            localStorage.setItem('user', JSON.stringify({
+            const currentUser = getStoredUser() || {};
+            const updatedUser = {
                 ...currentUser,
                 full_name: formData.full_name
-            }));
+            };
+
+            updateStoredUser(updatedUser);
 
             // Notify other components (like Header) that the profile has updated
             if (typeof window !== 'undefined') {
@@ -303,14 +312,51 @@ export default function ProfilePage() {
                                             <label htmlFor="date_of_birth" className="block text-sm font-medium text-neutral-700 mb-1">
                                                 Date of Birth
                                             </label>
+                                            <div className="relative">
+                                                <input
+                                                    type="date"
+                                                    id="date_of_birth"
+                                                    name="date_of_birth"
+                                                    value={formData.date_of_birth}
+                                                    onChange={handleChange}
+                                                    disabled={!isEditing}
+                                                    className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors disabled:bg-neutral-100 disabled:text-neutral-500 appearance-none bg-white modern-date-picker"
+                                                />
+                                                <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-neutral-400">
+                                                    📅
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div>
+                                            <label htmlFor="emergency_contact_phone" className="block text-sm font-medium text-neutral-700 mb-1">
+                                                Emergency Contact Number
+                                            </label>
                                             <input
-                                                type="date"
-                                                id="date_of_birth"
-                                                name="date_of_birth"
-                                                value={formData.date_of_birth}
+                                                type="tel"
+                                                id="emergency_contact_phone"
+                                                name="emergency_contact_phone"
+                                                value={formData.emergency_contact_phone}
                                                 onChange={handleChange}
                                                 disabled={!isEditing}
                                                 className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors disabled:bg-neutral-100 disabled:text-neutral-500"
+                                                placeholder="Emergency backup number"
+                                            />
+                                        </div>
+
+                                        <div className="sm:col-span-2">
+                                            <label htmlFor="bio" className="block text-sm font-medium text-neutral-700 mb-1">
+                                                Professional/Personal Bio
+                                            </label>
+                                            <textarea
+                                                id="bio"
+                                                name="bio"
+                                                rows={3}
+                                                value={formData.bio}
+                                                onChange={handleChange}
+                                                disabled={!isEditing}
+                                                className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors disabled:bg-neutral-100 disabled:text-neutral-500 resize-none"
+                                                placeholder="Brief introduction about yourself..."
                                             />
                                         </div>
 
@@ -371,3 +417,4 @@ export default function ProfilePage() {
         </div>
     );
 }
+
