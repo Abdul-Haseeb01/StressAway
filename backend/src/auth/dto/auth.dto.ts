@@ -1,5 +1,4 @@
-// Authentication DTOs (Data Transfer Objects)
-import { IsEmail, IsString, MinLength, IsEnum, IsOptional, IsNotEmpty, IsInt } from 'class-validator';
+import { IsEmail, IsString, MinLength, IsEnum, IsOptional, IsNotEmpty, IsInt, Matches } from 'class-validator';
 
 export enum UserRole {
     USER = 'user',
@@ -44,6 +43,7 @@ export class UpdateProfileDto {
 
     @IsString()
     @IsOptional()
+    @Matches(/^(\+92|0)\d{10}$/, { message: 'Phone number must be in format +923000000000 or 03000000000' })
     phone?: string;
 
     @IsString()
@@ -56,6 +56,7 @@ export class UpdateProfileDto {
 
     @IsString()
     @IsOptional()
+    @Matches(/^(\+92|0)\d{10}$/, { message: 'Emergency phone must be in format +923000000000 or 03000000000' })
     emergency_contact_phone?: string;
 
     @IsString()
@@ -81,6 +82,11 @@ export class UpdateProfileDto {
     @IsString()
     @IsOptional()
     verification_status?: string;
+
+    @IsString()
+    @IsOptional()
+    @Matches(/^\d{5}-\d{7}-\d{1}$/, { message: 'CNIC must be in format 12345-1234567-1' })
+    cnic?: string;
 
     @IsString()
     @IsOptional()

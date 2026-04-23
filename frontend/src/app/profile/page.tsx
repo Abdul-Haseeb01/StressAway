@@ -31,6 +31,7 @@ export default function ProfilePage() {
         gender: '',
         bio: '',
         emergency_contact_phone: '',
+        cnic: '',
         avatar_url: ''
     });
 
@@ -57,6 +58,7 @@ export default function ProfilePage() {
                 gender: profile.gender || '',
                 bio: profile.bio || '',
                 emergency_contact_phone: profile.emergency_contact_phone || '',
+                cnic: profile.cnic || '',
                 avatar_url: profile.avatar_url || ''
             });
         } catch (error) {
@@ -114,6 +116,24 @@ export default function ProfilePage() {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+
+        // Validation
+        const phoneRegex = /^(\+92|0)\d{10}$/;
+        const cnicRegex = /^\d{5}-\d{7}-\d{1}$/;
+
+        if (formData.phone && !phoneRegex.test(formData.phone)) {
+            setMessage({ text: 'Phone number must be in format +923000000000 or 03000000000', type: 'error' });
+            return;
+        }
+        if (formData.emergency_contact_phone && !phoneRegex.test(formData.emergency_contact_phone)) {
+            setMessage({ text: 'Emergency contact phone must be in format +923000000000 or 03000000000', type: 'error' });
+            return;
+        }
+        if (formData.cnic && !cnicRegex.test(formData.cnic)) {
+            setMessage({ text: 'CNIC must be in format 12345-1234567-1', type: 'error' });
+            return;
+        }
+
         setSaving(true);
         setMessage({ text: '', type: '' });
 
@@ -304,7 +324,7 @@ export default function ProfilePage() {
                                                 onChange={handleChange}
                                                 disabled={!isEditing}
                                                 className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors disabled:bg-neutral-100 disabled:text-neutral-500"
-                                                placeholder="+1 (555) 000-0000"
+                                                placeholder="03000000000 or +923000000000"
                                             />
                                         </div>
 
@@ -340,7 +360,23 @@ export default function ProfilePage() {
                                                 onChange={handleChange}
                                                 disabled={!isEditing}
                                                 className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors disabled:bg-neutral-100 disabled:text-neutral-500"
-                                                placeholder="Emergency backup number"
+                                                placeholder="03000000000 or +923000000000"
+                                            />
+                                        </div>
+
+                                        <div>
+                                            <label htmlFor="cnic" className="block text-sm font-medium text-neutral-700 mb-1">
+                                                CNIC Number
+                                            </label>
+                                            <input
+                                                type="text"
+                                                id="cnic"
+                                                name="cnic"
+                                                value={formData.cnic}
+                                                onChange={handleChange}
+                                                disabled={!isEditing}
+                                                className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors disabled:bg-neutral-100 disabled:text-neutral-500"
+                                                placeholder="12345-1234567-1"
                                             />
                                         </div>
 

@@ -303,7 +303,7 @@ export default function FacialEmotion() {
                                     )}
                                     {cameraActive && (
                                         <>
-                                            <button onClick={captureImage} disabled={capturing} className="btn bg-emerald-600 hover:bg-emerald-700 text-white flex-1 py-3 text-base border-none shadow">
+                                            <button onClick={captureImage} disabled={capturing} className="btn bg-primary-600 hover:bg-primary-700 text-white flex-1 py-3 text-base border-none shadow">
                                                 {capturing ? 'Analyzing…' : 'Capture & Analyze'}
                                             </button>
                                             <button onClick={stopCamera} disabled={capturing} className="btn btn-outline px-4">Stop</button>

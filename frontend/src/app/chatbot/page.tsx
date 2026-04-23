@@ -104,6 +104,25 @@ export default function ChatbotPage() {
         }
     };
 
+    const formatDateHeader = (dateStr: string) => {
+        const date = new Date(dateStr);
+        const today = new Date();
+        const yesterday = new Date();
+        yesterday.setDate(today.getDate() - 1);
+
+        if (date.toDateString() === today.toDateString()) return 'Today';
+        if (date.toDateString() === yesterday.toDateString()) return 'Yesterday';
+        
+        return date.toLocaleDateString([], { month: 'long', day: 'numeric', year: 'numeric' });
+    };
+
+    const isNewDay = (index: number) => {
+        if (index === 0) return true;
+        const prevDate = new Date(messages[index - 1].created_at).toDateString();
+        const currDate = new Date(messages[index].created_at).toDateString();
+        return prevDate !== currDate;
+    };
+
     if (!isAuthorized) {
         return null;
     }
@@ -112,15 +131,15 @@ export default function ChatbotPage() {
         <div className="min-h-screen flex flex-col bg-neutral-50">
             <Header />
 
-            <main className="flex-1 w-full max-w-6xl mx-auto pt-24 pb-8 px-4 sm:px-6">
-                <div className="flex flex-col w-full h-[70vh] min-h-[500px] max-h-[800px]">
-                    <div className="shrink-0 mb-3 mt-2 text-center">
-                        <h1 className="text-2xl font-bold text-neutral-900 mb-1">AI Mental Wellness Assistant</h1>
-                        <p className="text-neutral-600 text-sm hidden sm:block">Personalized support tailored to your recent stress scores</p>
+            <main className="w-full max-w-screen-xl mx-auto pt-24 pb-4 px-4 sm:px-6">
+                <div className="flex flex-col w-full h-[calc(100vh-120px)] min-h-[500px] bg-white rounded-3xl shadow-xl border border-neutral-200 overflow-hidden">
+                    <div className="shrink-0 py-4 text-center border-b border-neutral-100 bg-neutral-50/50">
+                        <h1 className="text-2xl font-black text-neutral-900 mb-0.5 tracking-tight">AI Mental Wellness Assistant</h1>
+                        <p className="text-neutral-500 text-xs hidden sm:block">Personalized support tailored to your recent stress scores</p>
                     </div>
 
                     {/* Chat Messages */}
-                    <div className="flex-1 bg-neutral-100 border border-neutral-300 shadow-sm rounded-t-2xl overflow-y-auto p-4 sm:p-6 space-y-4 sm:space-y-6 flex flex-col min-h-0 w-full relative">
+                    <div className="flex-1 bg-white overflow-y-auto p-4 sm:p-8 space-y-4 sm:space-y-6 flex flex-col min-h-0 w-full relative scrollbar-thin">
                         {messages.length === 0 && (
                             <div className="flex-1 flex flex-col items-center justify-center text-center text-neutral-500 py-12">
                                 <div className="text-6xl mb-6 bg-primary-50 w-24 h-24 rounded-full flex items-center justify-center text-primary-600">
@@ -133,26 +152,34 @@ export default function ChatbotPage() {
                             </div>
                         )}
 
-                        {messages.map((message) => (
-                            <div
-                                key={message.id}
-                                className={`flex ${message.is_user_message ? 'justify-end' : 'justify-start'}`}
-                            >
+                        {messages.map((message, index) => (
+                            <div key={message.id} className="flex flex-col gap-4">
+                                {isNewDay(index) && (
+                                    <div className="flex justify-center my-6">
+                                        <span className="bg-neutral-200/80 backdrop-blur-sm text-neutral-600 text-[10px] font-black px-4 py-1.5 rounded-full uppercase tracking-[0.1em] shadow-sm border border-neutral-300/50">
+                                            {formatDateHeader(message.created_at)}
+                                        </span>
+                                    </div>
+                                )}
                                 <div
-                                    className={`max-w-[85%] sm:max-w-[75%] rounded-2xl px-5 py-4 ${message.is_user_message
-                                        ? 'bg-primary-600 text-white rounded-br-none shadow-md shadow-primary-900/10'
-                                        : 'bg-neutral-200 text-neutral-800 rounded-bl-none border border-neutral-300'
-                                        }`}
+                                    className={`flex ${message.is_user_message ? 'justify-end' : 'justify-start'}`}
                                 >
-                                    {message.is_user_message ? (
-                                        <p className="whitespace-pre-wrap">{message.message}</p>
-                                    ) : (
-                                        <div className="prose prose-sm sm:prose-base max-w-none text-neutral-800 prose-p:leading-relaxed prose-pre:bg-neutral-800 prose-pre:text-white prose-a:text-primary-600">
-                                            <ReactMarkdown>{message.message}</ReactMarkdown>
+                                    <div
+                                        className={`max-w-[85%] sm:max-w-[75%] rounded-2xl px-5 py-4 ${message.is_user_message
+                                            ? 'bg-primary-600 text-white rounded-br-none shadow-md shadow-primary-900/10'
+                                            : 'bg-neutral-200 text-neutral-800 rounded-bl-none border border-neutral-300'
+                                            }`}
+                                    >
+                                        {message.is_user_message ? (
+                                            <p className="whitespace-pre-wrap">{message.message}</p>
+                                        ) : (
+                                            <div className="prose prose-sm sm:prose-base max-w-none text-neutral-800 prose-p:leading-relaxed prose-pre:bg-neutral-800 prose-pre:text-white prose-a:text-primary-600">
+                                                <ReactMarkdown>{message.message}</ReactMarkdown>
+                                            </div>
+                                        )}
+                                        <div className={`text-xs mt-2 text-right ${message.is_user_message ? 'text-primary-200' : 'text-neutral-400'}`}>
+                                            {new Date(message.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                         </div>
-                                    )}
-                                    <div className={`text-xs mt-2 text-right ${message.is_user_message ? 'text-primary-200' : 'text-neutral-400'}`}>
-                                        {new Date(message.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                     </div>
                                 </div>
                             </div>
@@ -174,7 +201,7 @@ export default function ChatbotPage() {
                     </div>
 
                     {/* Input Area */}
-                    <div className="shrink-0 bg-neutral-100 border-x border-b border-neutral-300 rounded-b-2xl p-3 sm:p-4 shadow-sm flex items-center gap-2 mb-2 sm:mb-4 w-full">
+                    <div className="shrink-0 bg-neutral-50 border-t border-neutral-100 p-4 flex items-center gap-4 w-full">
                         <input
                             type="text"
                             value={input}

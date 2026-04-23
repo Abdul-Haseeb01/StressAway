@@ -60,7 +60,7 @@ export default function Register() {
             });
             localStorage.setItem('token', response.access_token);
             localStorage.setItem('user', JSON.stringify(response.user));
-            
+
             if (formData.role === 'psychologist') {
                 router.push('/psychologist/onboarding');
             } else {
@@ -109,7 +109,7 @@ export default function Register() {
                                 type="text"
                                 required
                                 className="input"
-                                placeholder="John Doe"
+                                placeholder="Abdul Haseeb"
                                 value={formData.full_name}
                                 onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
                             />
@@ -121,7 +121,7 @@ export default function Register() {
                                 type="email"
                                 required
                                 className="input"
-                                placeholder="your.email@example.com"
+                                placeholder="username@email.com"
                                 value={formData.email}
                                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                             />
@@ -185,14 +185,14 @@ export default function Register() {
                                     )}
                                 </button>
                             </div>
-                            
+
                             {/* Password Strength Meter */}
                             {formData.password && (
                                 <div className="mt-2">
                                     <div className="flex gap-1 h-1.5 mt-1">
                                         {[1, 2, 3, 4, 5].map((level) => (
-                                            <div 
-                                                key={level} 
+                                            <div
+                                                key={level}
                                                 className={`flex-1 rounded-full ${strength >= level ? strengthColors[strength] : 'bg-neutral-200'}`}
                                             ></div>
                                         ))}
@@ -242,11 +242,11 @@ export default function Register() {
                             />
                             <label className="text-sm text-neutral-600">
                                 I agree to the{' '}
-                                <a href="#" className="text-primary-600 hover:text-primary-700 font-medium">
+                                <a href="/terms" className="text-primary-600 hover:text-primary-700 font-medium">
                                     Terms of Service
                                 </a>{' '}
                                 and{' '}
-                                <a href="#" className="text-primary-600 hover:text-primary-700 font-medium">
+                                <a href="/privacy" className="text-primary-600 hover:text-primary-700 font-medium">
                                     Privacy Policy
                                 </a>
                             </label>

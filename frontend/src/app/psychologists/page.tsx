@@ -193,6 +193,23 @@ export default function PsychologistsPage() {
         finally { setSendingMsg(false); }
     };
 
+    const formatDateHeader = (dateStr: string) => {
+        const date = new Date(dateStr);
+        const today = new Date();
+        const yesterday = new Date();
+        yesterday.setDate(today.getDate() - 1);
+        if (date.toDateString() === today.toDateString()) return 'Today';
+        if (date.toDateString() === yesterday.toDateString()) return 'Yesterday';
+        return date.toLocaleDateString([], { month: 'long', day: 'numeric', year: 'numeric' });
+    };
+
+    const isNewDay = (index: number) => {
+        if (index === 0) return true;
+        const prevDate = new Date(messages[index - 1].created_at).toDateString();
+        const currDate = new Date(messages[index].created_at).toDateString();
+        return prevDate !== currDate;
+    };
+
     if (!isAuthorized) return null;
 
     return (
@@ -453,45 +470,68 @@ export default function PsychologistsPage() {
 
             {/* Chat slide-out */}
             {activeChat && (
-                <div className="fixed inset-y-0 right-0 w-full md:w-[420px] bg-white shadow-[-8px_0_30px_rgba(0,0,0,0.1)] z-50 flex flex-col">
-                    <div className="p-4 border-b border-neutral-100 bg-primary-900 text-white flex justify-between items-center shrink-0">
-                        <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center font-bold">
-                                {getName(getOther(activeChat)).charAt(0).toUpperCase()}
-                            </div>
-                            <div>
-                                <h3 className="font-bold">{getName(getOther(activeChat))}</h3>
-                                <p className="text-xs text-primary-200">Secure Messaging</p>
-                            </div>
-                        </div>
-                        <button onClick={() => setActiveChat(null)} className="p-2 hover:bg-white/10 rounded-full">
-                            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-                        </button>
-                    </div>
-                    <div className="flex-1 overflow-y-auto p-4 bg-neutral-50 flex flex-col gap-3">
-                        {messages.length === 0 ? (
-                            <div className="m-auto text-neutral-400 text-sm text-center bg-white p-4 rounded-xl border border-neutral-100">Start of your secure conversation</div>
-                        ) : messages.map(msg => {
-                            const isMe = msg.sender_id === currentUser?.id;
-                            return (
-                                <div key={msg.id} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
-                                    <div className={`max-w-[75%] p-3 rounded-2xl text-sm ${isMe ? 'bg-primary-600 text-white rounded-br-sm' : 'bg-white border border-neutral-200 text-neutral-800 rounded-bl-sm'}`}>
-                                        <p>{msg.content}</p>
-                                        <p className={`text-[10px] mt-1 text-right ${isMe ? 'text-primary-200' : 'text-neutral-400'}`}>
-                                            {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                        </p>
-                                    </div>
+                <>
+                    {/* Backdrop for clicking outside */}
+                    <div 
+                        className="fixed inset-0 bg-black/5 backdrop-blur-[2px] z-[90] animate-fade-in" 
+                        onClick={() => setActiveChat(null)}
+                    />
+                    <div className="fixed inset-y-0 right-0 w-full md:w-[450px] bg-white shadow-[-15px_0_40px_rgba(0,0,0,0.12)] z-[100] flex flex-col animate-slide-in-right ring-1 ring-neutral-200">
+                        <div className="p-5 border-b border-neutral-100 bg-neutral-900 text-white flex justify-between items-center shrink-0">
+                            <div className="flex items-center gap-4">
+                                <div className="w-12 h-12 bg-white/10 rounded-2xl flex items-center justify-center font-black text-xl border border-white/20">
+                                    {getName(getOther(activeChat)).charAt(0).toUpperCase()}
                                 </div>
-                            );
-                        })}
+                                <div>
+                                    <h3 className="font-bold text-lg tracking-tight">{getName(getOther(activeChat))}</h3>
+                                </div>
+                            </div>
+                            <button onClick={() => setActiveChat(null)} className="p-2.5 hover:bg-white/10 rounded-xl transition-colors">
+                                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" /></svg>
+                            </button>
+                        </div>
+                        <div className="flex-1 overflow-y-auto p-6 bg-neutral-50/50 flex flex-col gap-4 scrollbar-thin">
+                            {messages.length === 0 ? (
+                                <div className="m-auto text-neutral-400 text-xs font-bold uppercase tracking-widest text-center bg-white py-8 px-6 rounded-3xl border border-neutral-100 shadow-sm">
+                                    Start of your conversation
+                                </div>
+                            ) : messages.map((msg, index) => {
+                                const isMe = String(msg.sender_id) === String(currentUser?.id);
+                                return (
+                                    <div key={msg.id} className="flex flex-col">
+                                        {isNewDay(index) && (
+                                            <div className="flex justify-center my-6">
+                                                <span className="bg-white/80 backdrop-blur-sm text-neutral-500 text-[10px] font-black px-4 py-1.5 rounded-full uppercase tracking-[0.15em] shadow-sm border border-neutral-200/50">
+                                                    {formatDateHeader(msg.created_at)}
+                                                </span>
+                                            </div>
+                                        )}
+                                        <div className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
+                                            <div className={`max-w-[85%] p-4 rounded-2xl shadow-sm text-sm leading-relaxed ${isMe ? 'bg-primary-600 text-white rounded-br-none' : 'bg-white border border-neutral-200 text-neutral-800 rounded-bl-none'}`}>
+                                                <p className="font-medium">{msg.content}</p>
+                                                <p className={`text-[10px] font-bold mt-2 text-right ${isMe ? 'text-primary-200' : 'text-neutral-400'}`}>
+                                                    {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                        <form onSubmit={handleSendMsg} className="p-5 border-t border-neutral-200 bg-white flex gap-3 shrink-0">
+                            <input 
+                                type="text" 
+                                value={messageInput} 
+                                onChange={e => setMessageInput(e.target.value)} 
+                                placeholder="Type a message…" 
+                                className="flex-1 bg-neutral-50 border-neutral-200 rounded-2xl px-5 py-3 text-sm focus:ring-primary-500 focus:border-primary-500 outline-none transition-all placeholder:text-neutral-400 font-medium" 
+                            />
+                            <button type="submit" disabled={sendingMsg || !messageInput.trim()} className="bg-primary-600 text-white w-14 h-14 flex items-center justify-center rounded-2xl hover:bg-primary-700 disabled:opacity-50 transition-all shadow-lg shadow-primary-200 active:scale-95">
+                                <svg className="w-6 h-6 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" /></svg>
+                            </button>
+                        </form>
                     </div>
-                    <form onSubmit={handleSendMsg} className="p-4 border-t border-neutral-200 bg-white flex gap-2 shrink-0">
-                        <input type="text" value={messageInput} onChange={e => setMessageInput(e.target.value)} placeholder="Type a message…" className="input flex-1 bg-neutral-100 border-none focus:ring-primary-500" />
-                        <button type="submit" disabled={sendingMsg || !messageInput.trim()} className="bg-primary-600 text-white w-12 h-12 flex items-center justify-center rounded-xl hover:bg-primary-700 disabled:opacity-50 transition-colors">
-                            <svg className="w-5 h-5 ml-1" fill="currentColor" viewBox="0 0 20 20"><path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" /></svg>
-                        </button>
-                    </form>
-                </div>
+                </>
             )}
 
             <Footer />

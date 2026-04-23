@@ -301,6 +301,24 @@ export default function AdminDashboard() {
 
     const handleProfileUpdate = async (e: React.FormEvent) => {
         e.preventDefault();
+
+        // Validation logic for Admin edits
+        const phoneRegex = /^(\+92|0)\d{10}$/;
+        const cnicRegex = /^\d{5}-\d{7}-\d{1}$/;
+
+        if (editFormData.phone && !phoneRegex.test(editFormData.phone)) {
+            showAlert('Phone number must be in format +923000000000 or 03000000000', 'error');
+            return;
+        }
+        if (editFormData.emergency_contact_phone && !phoneRegex.test(editFormData.emergency_contact_phone)) {
+            showAlert('Emergency contact phone must be in format +923000000000 or 03000000000', 'error');
+            return;
+        }
+        if (editFormData.cnic && !cnicRegex.test(editFormData.cnic)) {
+            showAlert('CNIC must be in format 12345-1234567-1', 'error');
+            return;
+        }
+
         try {
             const token = (localStorage.getItem('token') || sessionStorage.getItem('token'));
             const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api'}/admin/users/${selectedUser}/profile`, {
@@ -705,6 +723,7 @@ export default function AdminDashboard() {
                                                 <div><span className={`text-xs font-bold uppercase tracking-wider block mb-1 ${selectedUserDetails.profile?.verification_status === 'approved' ? 'text-green-600' : selectedUserDetails.profile?.verification_status === 'rejected' ? 'text-red-600' : 'text-orange-600'}`}>Qualifications</span><span className="text-neutral-900 font-bold">{selectedUserDetails.profile?.qualifications || 'Not provided'}</span></div>
                                                 <div><span className={`text-xs font-bold uppercase tracking-wider block mb-1 ${selectedUserDetails.profile?.verification_status === 'approved' ? 'text-green-600' : selectedUserDetails.profile?.verification_status === 'rejected' ? 'text-red-600' : 'text-orange-600'}`}>Experience Years</span><span className="text-neutral-900 font-bold">{selectedUserDetails.profile?.experience_years || 'Not provided'}</span></div>
                                                 <div><span className={`text-xs font-bold uppercase tracking-wider block mb-1 ${selectedUserDetails.profile?.verification_status === 'approved' ? 'text-green-600' : selectedUserDetails.profile?.verification_status === 'rejected' ? 'text-red-600' : 'text-orange-600'}`}>License Number</span><span className="text-neutral-900 font-bold">{selectedUserDetails.profile?.license_number || 'Not provided'}</span></div>
+                                                <div><span className={`text-xs font-bold uppercase tracking-wider block mb-1 ${selectedUserDetails.profile?.verification_status === 'approved' ? 'text-green-600' : selectedUserDetails.profile?.verification_status === 'rejected' ? 'text-red-600' : 'text-orange-600'}`}>CNIC Number</span><span className="text-neutral-900 font-bold">{selectedUserDetails.profile?.cnic || 'Not provided'}</span></div>
                                             </div>
                                             
                                             {selectedUserDetails.profile?.verification_status === 'pending' && (
@@ -742,6 +761,7 @@ export default function AdminDashboard() {
                                                     type="tel"
                                                     value={editFormData.phone || ''}
                                                     onChange={e => setEditFormData({ ...editFormData, phone: e.target.value })}
+                                                    placeholder="03000000000 or +923000000000"
                                                     className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
                                                 />
                                             </div>
@@ -772,6 +792,16 @@ export default function AdminDashboard() {
                                                     <option value="other">Other</option>
                                                 </select>
                                             </div>
+                                            <div>
+                                                <label className="block text-sm font-medium text-neutral-700 mb-1">CNIC Number</label>
+                                                <input
+                                                    type="text"
+                                                    value={editFormData.cnic || ''}
+                                                    onChange={e => setEditFormData({ ...editFormData, cnic: e.target.value })}
+                                                    placeholder="12345-1234567-1"
+                                                    className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
+                                                />
+                                            </div>
                                             <div className="md:col-span-2">
                                                 <label className="block text-sm font-medium text-neutral-700 mb-1">Bio / Notes</label>
                                                 <textarea
@@ -796,6 +826,7 @@ export default function AdminDashboard() {
                                                     type="tel"
                                                     value={editFormData.emergency_contact_phone || ''}
                                                     onChange={e => setEditFormData({ ...editFormData, emergency_contact_phone: e.target.value })}
+                                                    placeholder="03000000000 or +923000000000"
                                                     className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
                                                 />
                                             </div>
@@ -814,6 +845,7 @@ export default function AdminDashboard() {
                                             <div><span className="text-sm font-medium text-neutral-400 block mb-1">Date of Birth</span><span className="text-neutral-900">{selectedUserDetails.profile?.date_of_birth ? new Date(selectedUserDetails.profile.date_of_birth).toLocaleDateString() : 'Not provided'}</span></div>
                                             <div><span className="text-sm font-medium text-neutral-400 block mb-1">Age</span><span className="text-neutral-900">{calculateAge(selectedUserDetails.profile?.date_of_birth)} years</span></div>
                                             <div><span className="text-sm font-medium text-neutral-400 block mb-1">Gender Identity</span><span className="text-neutral-900 capitalize">{selectedUserDetails.profile?.gender || 'Not provided'}</span></div>
+                                            <div><span className="text-sm font-medium text-neutral-400 block mb-1">CNIC Number</span><span className="text-neutral-900">{selectedUserDetails.profile?.cnic || 'Not provided'}</span></div>
                                             <div><span className="text-sm font-medium text-neutral-400 block mb-1">Emergency Contact</span><span className="text-neutral-900">{selectedUserDetails.profile?.emergency_contact_name || 'None'} <br /> {selectedUserDetails.profile?.emergency_contact_phone || ''}</span></div>
                                             <div className="sm:col-span-2 md:col-span-3">
                                                 <span className="text-sm font-medium text-neutral-400 block mb-1">Bio / Internal Notes</span>

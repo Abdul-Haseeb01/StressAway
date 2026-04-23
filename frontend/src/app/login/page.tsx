@@ -25,7 +25,7 @@ export default function Login() {
 
         try {
             const response = await login(formData.email, formData.password);
-            
+
             if (rememberMe) {
                 localStorage.setItem('token', response.access_token);
                 localStorage.setItem('user', JSON.stringify(response.user));
@@ -100,7 +100,7 @@ export default function Login() {
                                 type="email"
                                 required
                                 className="input"
-                                placeholder="your.email@example.com"
+                                placeholder="username@email.com"
                                 value={formData.email}
                                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                             />
@@ -138,11 +138,11 @@ export default function Login() {
 
                         <div className="flex items-center justify-between text-sm">
                             <label className="flex items-center space-x-2 cursor-pointer">
-                                <input 
-                                    type="checkbox" 
+                                <input
+                                    type="checkbox"
                                     checked={rememberMe}
                                     onChange={(e) => setRememberMe(e.target.checked)}
-                                    className="w-4 h-4 rounded border-neutral-300 text-primary-600 focus:ring-primary-500" 
+                                    className="w-4 h-4 rounded border-neutral-300 text-primary-600 focus:ring-primary-500"
                                 />
                                 <span className="text-neutral-600">Remember me</span>
                             </label>

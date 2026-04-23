@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import Navbar from '@/components/Navbar';
+
 import AdaptiveNavbar from '@/components/AdaptiveNavbar';
 
 const featureDeck = [
@@ -86,9 +86,9 @@ export default function Home() {
                 <div className="container-custom">
                     <div className="grid lg:grid-cols-2 gap-12 items-center">
                         <div className="animate-fade-in-up">
-                            <div className="inline-block px-4 py-2 bg-primary-100 text-primary-800 rounded-full text-sm font-semibold mb-6 shadow-sm">
+                            {/* <div className="inline-block px-4 py-2 bg-primary-100 text-primary-800 rounded-full text-sm font-semibold mb-6 shadow-sm">
                                 🎯 AI-Powered Mental Wellness Platform
-                            </div>
+                            </div> */}
                             <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold text-neutral-900 mb-6 leading-tight">
                                 Take Control of Your
                                 <span className="block mt-2 bg-gradient-to-r from-primary-800 to-primary-600 bg-clip-text text-transparent">Mental Health</span>
@@ -179,8 +179,7 @@ export default function Home() {
                                     return (
                                         <div
                                             key={i}
-                                            onClick={() => setDeckIndex(i)}
-                                            className={`absolute w-[280px] h-[420px] rounded-[2rem] transition-all duration-700 ease-out cursor-pointer overflow-hidden shadow-2xl
+                                            className={`absolute w-[280px] h-[420px] rounded-[2rem] transition-all duration-700 ease-out overflow-hidden shadow-2xl
                                                 ${isActive ? 'bg-neutral-900 ring-4 ring-primary-500/20' : 'bg-white border border-neutral-100'}`}
                                             style={{
                                                 opacity,
@@ -442,7 +441,7 @@ export default function Home() {
             </section>
 
             {/* CTA Section */}
-            <section className="py-12 bg-navy-gradient">
+            <section className="py-12 bg-gradient-to-br from-primary-500 to-primary-300">
                 <div className="container-custom text-center text-white">
                     <h2 className="text-4xl md:text-5xl font-bold mb-6">Ready to Start Your Wellness Journey?</h2>
                     <p className="text-xl mb-8 opacity-90 max-w-2xl mx-auto">

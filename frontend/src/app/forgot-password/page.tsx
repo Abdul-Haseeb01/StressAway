@@ -35,7 +35,7 @@ export default function ForgotPassword() {
 
     const handleResetPassword = async (e: React.FormEvent) => {
         e.preventDefault();
-        
+
         if (password !== confirmPassword) {
             setStatus('error');
             setMessage('New passwords do not match');
@@ -88,7 +88,7 @@ export default function ForgotPassword() {
                             </div>
                             <h3 className="text-xl font-bold text-neutral-800 mb-2">Password Updated!</h3>
                             <p className="text-neutral-600 text-sm mb-6">{message}</p>
-                            
+
                             <Link href="/login" className="btn btn-primary w-full shadow-navy">
                                 Go to Login
                             </Link>
@@ -107,7 +107,7 @@ export default function ForgotPassword() {
                                     type="email"
                                     required
                                     className="input"
-                                    placeholder="your.email@example.com"
+                                    placeholder="username@email.com"
                                     value={email}
                                     onChange={(e) => setEmail(e.target.value)}
                                 />

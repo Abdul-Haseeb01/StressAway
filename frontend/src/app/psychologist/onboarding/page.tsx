@@ -17,10 +17,12 @@ export default function PsychologistOnboarding() {
         gender: '',
         bio: '',
         emergency_contact_phone: '',
+        cnic: '',
         qualifications: '',
         experience_years: '',
         license_number: '',
     });
+    const [showRequirements, setShowRequirements] = useState(false);
 
     useEffect(() => {
         const verifyUser = async () => {
@@ -35,11 +37,11 @@ export default function PsychologistOnboarding() {
                     router.push('/dashboard');
                     return;
                 }
-                
+
                 // Fetch latest profile to pre-fill form
                 const profileData = await getProfile();
                 const p = profileData.profile || {};
-                
+
                 setFormData({
                     full_name: p.full_name || user.full_name || '',
                     phone: p.phone || '',
@@ -47,13 +49,14 @@ export default function PsychologistOnboarding() {
                     gender: p.gender || '',
                     bio: p.bio || '',
                     emergency_contact_phone: p.emergency_contact_phone || '',
+                    cnic: p.cnic || '',
                     qualifications: p.qualifications || '',
                     experience_years: p.experience_years?.toString() || '',
                     license_number: p.license_number || '',
                 });
 
-                if (p.qualifications && p.verification_status !== 'rejected') {
-                    // Already submitted and not rejected
+                if (p.verification_status === 'approved') {
+                    // Already approved, go to dashboard
                     router.push('/psychologist');
                 }
             } catch (err) {
@@ -67,17 +70,47 @@ export default function PsychologistOnboarding() {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        setLoading(true);
 
+        // 1. Check for empty fields (excluding optional ones)
+        const optionalFields = ['bio', 'emergency_contact_phone'];
+        const requiredFields = Object.entries(formData).filter(([key]) => !optionalFields.includes(key));
+
+        const emptyFields = requiredFields.filter(([key, value]) => !value.toString().trim());
+
+        if (emptyFields.length > 0) {
+            showAlert(`Please fill in all required fields: ${emptyFields.map(([k]) => k.replace(/_/g, ' ')).join(', ')}`, 'error');
+            return;
+        }
+
+        // 2. Validate Phone Format (+923000000000 or 03000000000)
+        const phoneRegex = /^(\+92|0)\d{10}$/;
+        if (!phoneRegex.test(formData.phone)) {
+            showAlert('Phone number must be in format +923000000000 or 03000000000', 'error');
+            return;
+        }
+        // Only validate emergency phone if it's provided
+        if (formData.emergency_contact_phone && !phoneRegex.test(formData.emergency_contact_phone)) {
+            showAlert('Emergency contact phone must be in format +923000000000 or 03000000000', 'error');
+            return;
+        }
+
+        // 3. Validate CNIC Format (XXXXX-XXXXXXX-X)
+        const cnicRegex = /^\d{5}-\d{7}-\d{1}$/;
+        if (!cnicRegex.test(formData.cnic)) {
+            showAlert('CNIC must be in format 12345-1234567-1', 'error');
+            return;
+        }
+
+        setLoading(true);
         try {
             const updateData = {
                 ...formData,
                 experience_years: formData.experience_years ? parseInt(formData.experience_years) : 0,
-                verification_status: 'pending' 
+                verification_status: 'pending'
             };
-            
+
             await updateProfile(updateData);
-            
+
             // Also update local storage user if needed
             const userStr = localStorage.getItem('user') || sessionStorage.getItem('user');
             if (userStr) {
@@ -132,7 +165,6 @@ export default function PsychologistOnboarding() {
                                 <div>
                                     <label className="label text-neutral-700 font-bold">Full Name</label>
                                     <input
-                                        required
                                         type="text"
                                         className="input w-full bg-neutral-50/50"
                                         placeholder="Dr. Jane Smith"
@@ -143,10 +175,9 @@ export default function PsychologistOnboarding() {
                                 <div>
                                     <label className="label text-neutral-700 font-bold">Phone Number</label>
                                     <input
-                                        required
                                         type="tel"
                                         className="input w-full bg-neutral-50/50"
-                                        placeholder="+1 (555) 000-0000"
+                                        placeholder="03000000000 or +923000000000"
                                         value={formData.phone}
                                         onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                                     />
@@ -155,7 +186,6 @@ export default function PsychologistOnboarding() {
                                     <label className="label text-neutral-700 font-bold">Date of Birth</label>
                                     <div className="relative">
                                         <input
-                                            required
                                             type="date"
                                             className="input w-full bg-neutral-50/50 modern-date-picker"
                                             value={formData.date_of_birth}
@@ -169,7 +199,6 @@ export default function PsychologistOnboarding() {
                                 <div>
                                     <label className="label text-neutral-700 font-bold">Gender</label>
                                     <select
-                                        required
                                         className="input w-full bg-neutral-50/50"
                                         value={formData.gender}
                                         onChange={(e) => setFormData({ ...formData, gender: e.target.value })}
@@ -192,11 +221,22 @@ export default function PsychologistOnboarding() {
                                 />
                             </div>
                             <div>
+                                <label className="label text-neutral-700 font-bold">CNIC Number</label>
+                                <input
+                                    type="text"
+                                    className="input w-full bg-neutral-50/50"
+                                    placeholder="12345-1234567-1"
+                                    value={formData.cnic}
+                                    onChange={(e) => setFormData({ ...formData, cnic: e.target.value })}
+                                />
+                                <p className="text-[10px] text-neutral-400 mt-1 font-medium italic">Standard Pakistani CNIC format (12345-1234567-1)</p>
+                            </div>
+                            <div>
                                 <label className="label text-neutral-700 font-bold">Emergency Contact Phone</label>
                                 <input
                                     type="tel"
                                     className="input w-full bg-neutral-50/50"
-                                    placeholder="Emergency backup contact number"
+                                    placeholder="03000000000 or +923000000000"
                                     value={formData.emergency_contact_phone}
                                     onChange={(e) => setFormData({ ...formData, emergency_contact_phone: e.target.value })}
                                 />
@@ -205,14 +245,23 @@ export default function PsychologistOnboarding() {
 
                         {/* Section 2: Verification Details */}
                         <div className="p-8 bg-neutral-50/30 space-y-6">
-                            <h2 className="text-xl font-bold text-primary-900 flex items-center gap-2">
-                                <span className="w-8 h-8 bg-primary-100 text-primary-600 rounded-lg flex items-center justify-center text-sm font-black">02</span>
-                                Professional Verification
-                            </h2>
+                            <div className="flex items-center justify-between">
+                                <h2 className="text-xl font-bold text-primary-900 flex items-center gap-2">
+                                    <span className="w-8 h-8 bg-primary-100 text-primary-600 rounded-lg flex items-center justify-center text-sm font-black">02</span>
+                                    Professional Verification
+                                </h2>
+                                <button
+                                    type="button"
+                                    onClick={() => setShowRequirements(true)}
+                                    className="text-primary-600 hover:text-primary-700 text-sm font-bold underline flex items-center gap-1"
+                                >
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                    View Requirements
+                                </button>
+                            </div>
                             <div>
                                 <label className="label text-neutral-700 font-bold">Academic Qualifications & Degrees</label>
                                 <textarea
-                                    required
                                     rows={3}
                                     className="input w-full bg-white"
                                     placeholder="e.g. Ph.D. in Clinical Psychology, M.S. in Counseling..."
@@ -226,7 +275,6 @@ export default function PsychologistOnboarding() {
                                     <label className="label text-neutral-700 font-bold">Years of Experience</label>
                                     <input
                                         type="number"
-                                        required
                                         min="0"
                                         className="input w-full bg-white"
                                         placeholder="e.g. 5"
@@ -238,7 +286,6 @@ export default function PsychologistOnboarding() {
                                     <label className="label text-neutral-700 font-bold">License Number</label>
                                     <input
                                         type="text"
-                                        required
                                         className="input w-full bg-white"
                                         placeholder="Professional Registration ID"
                                         value={formData.license_number}
@@ -268,6 +315,65 @@ export default function PsychologistOnboarding() {
                     </form>
                 </div>
             </div>
+
+            {/* Requirements Modal */}
+            {showRequirements && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-neutral-900/60 backdrop-blur-sm animate-fade-in">
+                    <div className="bg-white rounded-3xl shadow-2xl max-w-lg w-full overflow-hidden animate-slide-in-up">
+                        <div className="p-8">
+                            <div className="flex items-center justify-between mb-6">
+                                <h3 className="text-2xl font-black text-neutral-900 tracking-tight">Professional Requirements</h3>
+                                <button onClick={() => setShowRequirements(false)} className="text-neutral-400 hover:text-neutral-600 transition-colors">
+                                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" /></svg>
+                                </button>
+                            </div>
+
+                            <div className="space-y-6 text-neutral-600">
+                                <div>
+                                    <h4 className="font-bold text-neutral-900 mb-2 flex items-center gap-2">
+                                        <span className="w-1.5 h-6 bg-primary-500 rounded-full"></span>
+                                        Academic Qualifications
+                                    </h4>
+                                    <ul className="list-disc list-inside space-y-1 pl-4 text-sm">
+                                        <li>M.S. in Psychology, Clinical Psychology, or Counseling</li>
+                                        <li>Ph.D. or Psy.D. in related fields (Preferred)</li>
+                                        <li>Relevant certifications in specialized therapy areas</li>
+                                    </ul>
+                                </div>
+
+                                <div>
+                                    <h4 className="font-bold text-neutral-900 mb-2 flex items-center gap-2">
+                                        <span className="w-1.5 h-6 bg-primary-500 rounded-full"></span>
+                                        Professional Experience
+                                    </h4>
+                                    <ul className="list-disc list-inside space-y-1 pl-4 text-sm">
+                                        <li>Minimum of 2 years of supervised clinical experience</li>
+                                        <li>Valid professional practice license (National/Regional)</li>
+                                        <li>Clear criminal background check and CNIC verification</li>
+                                    </ul>
+                                </div>
+
+                                <div>
+                                    <h4 className="font-bold text-neutral-900 mb-2 flex items-center gap-2">
+                                        <span className="w-1.5 h-6 bg-primary-500 rounded-full"></span>
+                                        Platform Standards
+                                    </h4>
+                                    <p className="text-sm pl-4 leading-relaxed">
+                                        Practitioners must adhere to our strict ethical guidelines, maintain patient confidentiality at all times, and commit to active participation in the platform's support network.
+                                    </p>
+                                </div>
+                            </div>
+
+                            <button
+                                onClick={() => setShowRequirements(false)}
+                                className="w-full mt-8 bg-neutral-900 text-white py-4 rounded-2xl font-bold hover:bg-neutral-800 transition-all active:scale-[0.98]"
+                            >
+                                I Understand
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

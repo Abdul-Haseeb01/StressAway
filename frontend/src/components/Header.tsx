@@ -134,7 +134,7 @@ export default function Header() {
                             full_name: profile.full_name || currentUser.full_name,
                             avatar_url: profile.avatar_url || currentUser.avatar_url,
                         };
-                        
+
                         updateStoredUser(updatedUser);
                         setUser(updatedUser);
                     }
@@ -224,12 +224,7 @@ export default function Header() {
                                     >
                                         Wellness
                                     </Link>
-                                    <Link
-                                        href="/wellness"
-                                        className={`font-medium transition-colors text-sm lg:text-base ${isActive('/wellness') ? 'text-primary-800' : 'text-neutral-600 hover:text-primary-800'}`}
-                                    >
-                                        Wellness
-                                    </Link>
+
                                     <Link
                                         href="/family"
                                         className={`font-medium transition-colors text-sm lg:text-base flex items-center gap-1 ${isActive('/family') ? 'text-primary-800' : 'text-neutral-600 hover:text-primary-800'}`}
