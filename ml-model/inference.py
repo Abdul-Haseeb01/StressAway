@@ -1,13 +1,19 @@
 import os
+import sys
+
+# Suppress TensorFlow logging noise (MUST be before import tensorflow)
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'
+
 import cv2
 import logging
 import numpy as np
 import tensorflow as tf
 from tensorflow.keras.models import load_model
-import sys
-# Suppress TensorFlow logging noise
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
-os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'
+
+# Suppress absl logging
+import absl.logging
+absl.logging.set_verbosity(absl.logging.ERROR)
 logging.getLogger('tensorflow').setLevel(logging.ERROR)
 logging.getLogger('absl').setLevel(logging.ERROR)
 

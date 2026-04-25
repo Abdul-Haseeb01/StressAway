@@ -18,7 +18,7 @@ export default function RootLayout({
     return (
         <html lang="en" className="scroll-smooth">
             <head>
-                <title>StressAway - Mental Wellness Platform</title>
+                <title>StressAway</title>
                 <meta name="description" content="Monitor and manage stress through AI-powered assessments and wellness activities" />
                 <meta name="viewport" content="width=device-width, initial-scale=1" />
             </head>
