@@ -97,13 +97,10 @@ export default function Home() {
                                 Monitor stress levels, access professional support, and improve your well-being with our comprehensive mental wellness platform powered by AI.
                             </p>
                             <div className="flex flex-col sm:flex-row gap-4">
-                                <Link href="/register" className="btn btn-primary btn-lg shadow-navy">
+                                <Link href="/register" className="btn btn-primary btn-lg shadow-navy hover:scale-105 hover:-translate-y-1 hover:shadow-xl transition-all duration-300">
                                     Start Your Journey
-                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                                    </svg>
                                 </Link>
-                                <Link href="/login" className="btn btn-white btn-lg">
+                                <Link href="/login" className="btn btn-white btn-lg hover:scale-105 hover:-translate-y-1 hover:shadow-xl transition-all duration-300">
                                     Sign In
                                 </Link>
                             </div>
@@ -448,13 +445,10 @@ export default function Home() {
                         Join thousands of users who are taking control of their mental health with StressAway. Get started for free today.
                     </p>
                     <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                        <Link href="/register" className="btn btn-white btn-lg">
+                        <Link href="/register" className="btn btn-white btn-lg hover:scale-105 hover:-translate-y-1 hover:shadow-2xl transition-all duration-300">
                             Create Free Account
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                            </svg>
                         </Link>
-                        <Link href="/login" className="btn btn-outline border-white text-white hover:bg-white/10 btn-lg">
+                        <Link href="/login" className="btn btn-outline border-white text-white hover:bg-white/10 btn-lg hover:scale-105 hover:-translate-y-1 hover:shadow-xl transition-all duration-300">
                             Sign In
                         </Link>
                     </div>

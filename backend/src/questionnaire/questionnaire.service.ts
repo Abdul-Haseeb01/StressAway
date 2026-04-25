@@ -51,9 +51,13 @@ export class QuestionnaireService {
             // Store response
             responsesObj[response.question_id] = response.answer_value;
 
-            // Calculate weighted scores
-            totalWeightedScore += response.answer_value * weight;
-            totalMaxWeightedScore += maxValue * weight;
+            // Calculate weighted scores using 1-5 offset (1 becomes 0, 5 becomes 4)
+            // This ensures a score of 1 results in 0% stress and 5 results in 100% stress
+            const adjustedValue = Math.max(0, response.answer_value - 1);
+            const adjustedMax = Math.max(1, maxValue - 1);
+
+            totalWeightedScore += adjustedValue * weight;
+            totalMaxWeightedScore += adjustedMax * weight;
         }
 
         // Calculate final stress score (0-100 scale)

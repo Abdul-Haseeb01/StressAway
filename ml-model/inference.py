@@ -1,28 +1,35 @@
-"""
-Inference Script for Emotion Recognition
-Load trained model and predict emotions from images
-"""
-
-import numpy as np
+import os
 import cv2
+import logging
+import numpy as np
 import tensorflow as tf
 from tensorflow.keras.models import load_model
+import sys
+# Suppress TensorFlow logging noise
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'
+logging.getLogger('tensorflow').setLevel(logging.ERROR)
+logging.getLogger('absl').setLevel(logging.ERROR)
 
 
 class EmotionPredictor:
     def __init__(self, model_path='models/emotion_model_final.h5'):
         """
-        Initialize emotion predictor
-        
-        Args:
-            model_path: Path to trained model
+        Initialize emotion predictor with lazy loading for TensorFlow.
         """
-        self.model = load_model(model_path)
         self.emotion_labels = ['angry', 'disgust', 'fear', 'happy', 'sad', 'surprise', 'neutral']
         self.img_size = (48, 48)
-        
-        import sys
-        print(f"Model loaded from {model_path}", file=sys.stderr)
+        self.tf_available = False
+        self.model = None
+
+        try:
+            
+            self.model = load_model(model_path)
+            self.tf_available = True
+            print(f"Successfully loaded model from {model_path}")
+        except Exception as e:
+           
+            print(f"Warning: Could not load TensorFlow model: {e}", file=sys.stderr)
     
     def preprocess_image(self, image):
         """
@@ -82,6 +89,9 @@ class EmotionPredictor:
         
         if processed_image is None:
             return {'error': 'No face detected in the image.'}
+        
+        if not self.tf_available:
+            return {'error': 'Facial analysis engine (TensorFlow) is currently unavailable on this system.'}
         
         # Get predictions
         predictions = self.model.predict(processed_image, verbose=0)[0]
@@ -172,6 +182,12 @@ class EmotionPredictor:
         face_crop = face_crop.astype('float32') / 255.0
         face_crop = face_crop.reshape(1, self.img_size[0], self.img_size[1], 1)
         
+        if not self.tf_available:
+            return {
+                'error': 'Emotion detection engine is currently unavailable. However, a face was detected.',
+                'boxed_image_base64': boxed_image_base64
+            }
+
         # Get predictions
         predictions = self.model.predict(face_crop, verbose=0)[0]
         predicted_idx = np.argmax(predictions)

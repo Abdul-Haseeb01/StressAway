@@ -9,11 +9,11 @@ import { getQuestions, submitQuestionnaire, getQuestionnaireLogs } from '@/utils
 import { useAlert } from '@/context/AlertContext';
 
 const options = [
-    { label: "Never", value: 0 },
-    { label: "Almost Never", value: 1 },
-    { label: "Sometimes", value: 2 },
-    { label: "Fairly Often", value: 3 },
-    { label: "Very Often", value: 4 }
+    { label: "Minimum", value: 1 },
+    { label: "", value: 2 },
+    { label: "", value: 3 },
+    { label: "", value: 4 },
+    { label: "Maximum", value: 5 }
 ];
 
 interface Question {
@@ -46,6 +46,8 @@ export default function Questionnaire() {
     const [resultData, setResultData] = useState<{ stress_score: number, sos_triggered?: boolean } | null>(null);
     const [started, setStarted] = useState(false);
     const [showSosPopup, setShowSosPopup] = useState(false);
+
+    const [showDisclaimer, setShowDisclaimer] = useState(true);
 
     useEffect(() => {
         const token = (localStorage.getItem('token') || sessionStorage.getItem('token'));
@@ -262,6 +264,31 @@ export default function Questionnaire() {
                         </div>
                     </div>
 
+                    {/* Disclaimer Warning - Only on start screen */}
+                    {showDisclaimer && !started && tab === 'assessment' && (
+                        <div className="bg-orange-50 border-l-4 border-orange-400 p-4 mb-8 rounded-r-xl shadow-sm animate-fade-in relative">
+                            <button 
+                                onClick={() => setShowDisclaimer(false)}
+                                className="absolute top-2 right-2 text-orange-400 hover:text-orange-600 transition-colors"
+                            >
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                            </button>
+                            <div className="flex items-start pr-8">
+                                <div className="flex-shrink-0">
+                                    <svg className="h-5 w-5 text-orange-400" viewBox="0 0 20 20" fill="currentColor">
+                                        <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                                    </svg>
+                                </div>
+                                <div className="ml-3">
+                                    <p className="text-sm text-orange-700 font-medium">
+                                        <span className="font-bold uppercase tracking-wider text-xs mr-2">Disclaimer:</span> 
+                                        This assessment is based on self-reported data. Results are for guidance only and do not substitute for professional medical or psychological advice. AI-calculated stress scores may contain errors.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
                     {/* ── HISTORY ── */}
                     {tab === 'history' && (
                         <div className="card">
@@ -360,30 +387,40 @@ export default function Questionnaire() {
                                         </div>
                                     </div>
 
+
                                     {/* Question Card */}
                                     {questionObj && (
                                         <div className="card mb-6 animate-fade-in-up">
                                             <h2 className="text-2xl font-semibold mb-6 text-neutral-900">{questionObj.question_text}</h2>
-                                            <div className="space-y-3">
-                                                {options.map((option) => {
-                                                    const isSelected = answers[questionObj.id] === option.value;
-                                                    return (
-                                                        <button
-                                                            key={option.value}
-                                                            onClick={() => handleAnswer(option.value)}
-                                                            className={`w-full p-4 rounded-lg border-2 text-left transition-all ${isSelected
-                                                                ? 'border-primary-600 bg-primary-50'
-                                                                : 'border-neutral-200 hover:border-neutral-300'}`}
-                                                        >
-                                                            <div className="flex items-center">
-                                                                <div className={`w-5 h-5 rounded-full border-2 mr-3 flex items-center justify-center ${isSelected ? 'border-primary-600 bg-primary-600' : 'border-neutral-300'}`}>
-                                                                    {isSelected && <div className="w-2 h-2 bg-white rounded-full" />}
-                                                                </div>
-                                                                <span className="font-medium">{option.label}</span>
+                                            <div className="relative py-8 px-4 sm:px-12">
+                                                {/* Connecting Line - precisely centered on the circles */}
+                                                <div className="absolute top-[3.5rem] sm:top-[4rem] left-[12.5%] right-[12.5%] h-1 bg-neutral-200 z-0 rounded-full overflow-hidden">
+                                                    <div 
+                                                        className="h-full bg-primary-300 transition-all duration-700 ease-out" 
+                                                        style={{ width: `${answers[questionObj.id] ? (answers[questionObj.id] - 1) * 25 : 0}%` }} 
+                                                    />
+                                                </div>
+
+                                                <div className="relative flex justify-between items-start z-10">
+                                                    {options.map((option) => {
+                                                        const isSelected = answers[questionObj.id] === option.value;
+                                                        return (
+                                                            <div key={option.value} className="flex flex-col items-center flex-1">
+                                                                <button
+                                                                    onClick={() => handleAnswer(option.value)}
+                                                                    className={`w-12 h-12 sm:w-16 sm:h-16 rounded-full border-4 flex items-center justify-center text-xl sm:text-2xl font-black transition-all duration-300 transform shadow-sm ${isSelected
+                                                                        ? 'bg-primary-600 border-primary-100 text-white scale-125 shadow-xl ring-4 ring-primary-50'
+                                                                        : 'bg-white border-neutral-300 text-neutral-600 hover:border-primary-400 hover:text-primary-600 hover:scale-110 active:scale-90'}`}
+                                                                >
+                                                                    {option.value}
+                                                                </button>
+                                                                <span className={`mt-5 text-[10px] sm:text-xs font-bold uppercase tracking-tight text-center transition-all duration-300 min-h-[1rem] ${isSelected ? 'text-primary-700 opacity-100' : 'text-neutral-500 opacity-60'}`}>
+                                                                    {option.label || ""}
+                                                                </span>
                                                             </div>
-                                                        </button>
-                                                    );
-                                                })}
+                                                        );
+                                                    })}
+                                                </div>
                                             </div>
                                         </div>
                                     )}

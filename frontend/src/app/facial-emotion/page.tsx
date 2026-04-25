@@ -24,6 +24,7 @@ export default function FacialEmotion() {
     const [resultImage, setResultImage] = useState<string | null>(null);
     const [result, setResult] = useState<any>(null);
     const [showSosPopup, setShowSosPopup] = useState(false);
+    const [showDisclaimer, setShowDisclaimer] = useState(true);
 
     const videoRef = useRef<HTMLVideoElement>(null);
     const streamRef = useRef<MediaStream | null>(null);
@@ -202,6 +203,31 @@ export default function FacialEmotion() {
                             ))}
                         </div>
                     </div>
+
+                    {/* Disclaimer Warning - Only on initial screen */}
+                    {showDisclaimer && !cameraActive && !capturedImage && !resultImage && mode === 'scan' && (
+                        <div className="bg-orange-50 border-l-4 border-orange-400 p-4 mb-8 rounded-r-xl shadow-sm animate-fade-in relative">
+                            <button 
+                                onClick={() => setShowDisclaimer(false)}
+                                className="absolute top-2 right-2 text-orange-400 hover:text-orange-600 transition-colors"
+                            >
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                            </button>
+                            <div className="flex items-start pr-8">
+                                <div className="flex-shrink-0">
+                                    <svg className="h-5 w-5 text-orange-400" viewBox="0 0 20 20" fill="currentColor">
+                                        <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                                    </svg>
+                                </div>
+                                <div className="ml-3">
+                                    <p className="text-sm text-orange-700 font-medium">
+                                        <span className="font-bold uppercase tracking-wider text-xs mr-2">Disclaimer:</span> 
+                                        Stress levels detected via facial analysis may not be 100% accurate. AI errors can occur based on lighting, camera quality, and environmental factors. Use this as a general wellness guide, not a medical diagnosis.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    )}
 
                     {/* ── HISTORY ── */}
                     {mode === 'history' && (

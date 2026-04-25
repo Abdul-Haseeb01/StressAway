@@ -44,7 +44,9 @@ export class FacialEmotionService {
 
             // Call the python script synchronously with --json
             // IMPORTANT: set cwd to mlModelPath so Python script finds its local 'models/...' relative paths
-            const outputBuffer = execSync(`python "${inferenceScript}" --image "${tempFilePath}" --json`, {
+            // Use the specific python installation where we installed dependencies
+            const pythonPath = 'C:\\Users\\LENOVO\\AppData\\Local\\Programs\\Python\\Python312\\python.exe';
+            const outputBuffer = execSync(`"${pythonPath}" "${inferenceScript}" --image "${tempFilePath}" --json`, {
                 cwd: mlModelPath
             });
             let outputString = outputBuffer.toString().trim();
@@ -123,31 +125,12 @@ export class FacialEmotionService {
             if (err instanceof BadRequestException || err.status === 400) {
                 throw err;
             }
-            
-            console.warn('Falling back to simulation completely...');
-            emotionProbabilities = this.simulateEmotionPrediction();
-            dominantEmotion = this.getDominantEmotion(emotionProbabilities);
-            stressScore = this.calculateStressScore(emotionProbabilities);
-            // Still log simulated result
-            const logData = {
-                user_id: userId,
-                stress_score: stressScore.toFixed(2),
-                detected_emotion: dominantEmotion,
-                emotion_probabilities: emotionProbabilities,
-                confidence: (85).toFixed(2),
-            };
-            const dbResult = await this.supabaseService.insert('facial_stress_logs', logData);
-            
+
+            // Return a clear error so user doesn't get "random" results
             return {
-                success: true,
-                message: 'Simulated scan processed successfully',
-                detected_emotion: dominantEmotion,
-                confidence: 85,
-                stress_score: stressScore,
-                probabilities: emotionProbabilities,
-                // Fallback simulation doesn't have a drawn box, so we just return the raw image sent up
-                image_base64: predictDto.image_base64,
-                log_id: dbResult?.[0]?.id
+                success: false,
+                message: 'Facial analysis service is currently initializing or unavailable. Please try again in a moment.',
+                error_detail: err.message
             };
         }
     }
@@ -202,56 +185,6 @@ export class FacialEmotionService {
             average_stress: parseFloat(average.toFixed(2)),
             most_common_emotion: mostCommonEmotion,
             emotion_distribution: emotionCounts,
-        };
-    }
-
-    /**
-     * Calculate stress score from emotion probabilities
-     * Higher weights for negative emotions
-     */
-    private calculateStressScore(probs: EmotionProbabilities): number {
-        const stressScore =
-            probs.angry * 0.9 +
-            probs.fear * 0.85 +
-            probs.sad * 0.75 +
-            probs.disgust * 0.7 +
-            probs.surprise * 0.4 +
-            probs.neutral * 0.3 +
-            probs.happy * 0.1;
-
-        return stressScore * 100;
-    }
-
-    /**
-     * Get dominant emotion from probabilities
-     */
-    private getDominantEmotion(probs: EmotionProbabilities): string {
-        const emotions = Object.entries(probs);
-        const dominant = emotions.reduce((max, curr) =>
-            curr[1] > max[1] ? curr : max
-        );
-        return dominant[0];
-    }
-
-    /**
-     * Simulate emotion prediction (placeholder for TensorFlow model)
-     * In production, this will be replaced with actual model inference
-     */
-    private simulateEmotionPrediction(): EmotionProbabilities {
-        // Generate random probabilities that sum to 1
-        const random = () => Math.random();
-        const values = [random(), random(), random(), random(), random(), random(), random()];
-        const sum = values.reduce((a, b) => a + b, 0);
-        const normalized = values.map(v => v / sum);
-
-        return {
-            angry: normalized[0],
-            disgust: normalized[1],
-            fear: normalized[2],
-            happy: normalized[3],
-            sad: normalized[4],
-            surprise: normalized[5],
-            neutral: normalized[6],
         };
     }
 }
