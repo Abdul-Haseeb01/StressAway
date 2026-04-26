@@ -12,9 +12,26 @@ async function bootstrap() {
     app.use(require('express').urlencoded({ limit: '10mb', extended: true }));
 
     // Enable CORS for frontend communication
+    const allowedOrigins = process.env.CORS_ORIGINS ? process.env.CORS_ORIGINS.split(',') : ['http://localhost:3000'];
     app.enableCors({
-        origin: process.env.CORS_ORIGIN || 'http://localhost:3000',
+        origin: (origin, callback) => {
+            // Allow requests with no origin (like mobile apps or curl requests)
+            if (!origin) return callback(null, true);
+            
+            const isVercel = origin.endsWith('.vercel.app');
+            const isAllowed = allowedOrigins.includes(origin) || isVercel;
+            
+            if (isAllowed) {
+                callback(null, true);
+            } else {
+                // In development, log the blocked origin to help troubleshooting
+                console.warn(`CORS blocked request from: ${origin}`);
+                callback(new Error('Not allowed by CORS'));
+            }
+        },
+        methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
         credentials: true,
+        allowedHeaders: 'Content-Type, Accept, Authorization',
     });
 
     // Apply global validation pipe

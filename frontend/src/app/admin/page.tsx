@@ -5,7 +5,8 @@ import { useRouter } from 'next/navigation';
 import Header from '@/components/Header';
 import { 
     getAdminStats, getAllUsers, updateUserRole, deactivateUser, activateUser, 
-    getContactMessages, updateContactStatus, updateUserProfile
+    getContactMessages, updateContactStatus, updateUserProfile, getUserDetails,
+    getAdminQuestions, updateAdminQuestion, createAdminQuestion, deleteAdminQuestion
 } from '@/utils/api';
 import { getStoredToken, getStoredUser } from '@/utils/storage';
 import { useAlert } from '@/context/AlertContext';
@@ -81,12 +82,11 @@ export default function AdminDashboard() {
             setUsers(usersRes);
 
             // Fetch Questionnaire Questions
-            const qRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api'}/admin/questionnaire/questions`, {
-                headers: { Authorization: `Bearer ${getStoredToken()}` }
-            });
-            if (qRes.ok) {
-                const qData = await qRes.json();
+            try {
+                const qData = await getAdminQuestions();
                 setQuestions(qData.sort((a: any, b: any) => (a.question_order || 0) - (b.question_order || 0)));
+            } catch (err) {
+                console.error("Failed to fetch questions", err);
             }
 
             // Fetch Contact Messages (Help Center)
@@ -172,13 +172,7 @@ export default function AdminDashboard() {
         setDetailsLoading(true);
         setIsEditingProfile(false);
         try {
-            const token = (localStorage.getItem('token') || sessionStorage.getItem('token'));
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api'}/admin/users/${userId}`, {
-                headers: {
-                    Authorization: `Bearer ${token}`
-                }
-            });
-            const data = await response.json();
+            const data = await getUserDetails(userId);
             setSelectedUserDetails(data);
             setEditFormData(data.profile || {});
 
@@ -230,24 +224,18 @@ export default function AdminDashboard() {
 
     const handleQuestionSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        const token = (localStorage.getItem('token') || sessionStorage.getItem('token'));
-        const method = editingQuestion?.id ? 'PUT' : 'POST';
-        const url = `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api'}/admin/questionnaire/questions${editingQuestion?.id ? `/${editingQuestion.id}` : ''}`;
 
         try {
-            const res = await fetch(url, {
-                method,
-                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-                body: JSON.stringify(editingQuestion)
-            });
-            if (!res.ok) throw new Error();
+            if (editingQuestion?.id) {
+                await updateAdminQuestion(editingQuestion.id, editingQuestion);
+            } else {
+                await createAdminQuestion(editingQuestion);
+            }
             showAlert(`Question ${editingQuestion?.id ? 'updated' : 'created'} successfully`, 'success');
             setIsQuestionModalOpen(false);
             // Refresh
-            const qRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api'}/admin/questionnaire/questions`, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
-            setQuestions(await qRes.json());
+            const qData = await getAdminQuestions();
+            setQuestions(qData);
         } catch (error) {
             showAlert('Failed to save question', 'error');
         }
@@ -255,12 +243,8 @@ export default function AdminDashboard() {
 
     const deleteQuestion = async (id: string) => {
         if (!await showConfirm('Are you sure you want to delete this question?')) return;
-        const token = (localStorage.getItem('token') || sessionStorage.getItem('token'));
         try {
-            await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api'}/admin/questionnaire/questions/${id}`, {
-                method: 'DELETE',
-                headers: { Authorization: `Bearer ${token}` }
-            });
+            await deleteAdminQuestion(id);
             setQuestions(questions.filter(q => q.id !== id));
             showAlert('Question deleted', 'success');
         } catch (error) {
@@ -320,25 +304,14 @@ export default function AdminDashboard() {
         }
 
         try {
-            const token = (localStorage.getItem('token') || sessionStorage.getItem('token'));
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api'}/admin/users/${selectedUser}/profile`, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                    Authorization: `Bearer ${token}`
-                },
-                body: JSON.stringify(editFormData)
-            });
-
-            if (!response.ok) throw new Error('Update failed');
+            await updateUserProfile(selectedUser!, editFormData);
 
             showAlert('Profile updated successfully!', 'success');
             setIsEditingProfile(false);
 
             // Refresh details and users list to reflect generic name changes
             await handleUserClick(selectedUser!);
-            const rootRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api'}/admin/users`, { headers: { Authorization: `Bearer ${token}` } });
-            const usersData = await rootRes.json();
+            const usersData = await getAllUsers();
             setUsers(usersData);
         } catch (error) {
             showAlert('Failed to update profile. Check permissions.', 'error');

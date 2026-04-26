@@ -357,6 +357,27 @@ export const updateUserProfile = async (id: string, profileData: any) => {
     return response.data;
 };
 
+// ==================== ADMIN QUESTIONNAIRE ====================
+export const getAdminQuestions = async () => {
+    const response = await api.get('/admin/questionnaire/questions');
+    return response.data;
+};
+
+export const createAdminQuestion = async (questionData: any) => {
+    const response = await api.post('/admin/questionnaire/questions', questionData);
+    return response.data;
+};
+
+export const updateAdminQuestion = async (id: string, questionData: any) => {
+    const response = await api.put(`/admin/questionnaire/questions/${id}`, questionData);
+    return response.data;
+};
+
+export const deleteAdminQuestion = async (id: string) => {
+    const response = await api.delete(`/admin/questionnaire/questions/${id}`);
+    return response.data;
+};
+
 // ==================== PSYCHOLOGIST ====================
 export const getPatientDetails = async (id: string) => {
     const response = await api.get(`/psychologist/patients/${id}`);
