@@ -1,15 +1,13 @@
 import Link from 'next/link';
+import Logo from './Logo';
 
 export default function Navbar() {
     return (
         <nav className="fixed top-0 w-full bg-white/95 backdrop-blur-sm shadow-sm z-50">
             <div className="container-custom">
                 <div className="flex justify-between items-center h-20">
-                    <Link href="/" className="flex items-center space-x-2">
-                        <div className="w-10 h-10 bg-navy-gradient rounded-lg flex items-center justify-center shadow-navy">
-                            <span className="text-white text-xl font-bold">S</span>
-                        </div>
-                        <span className="text-2xl font-bold text-primary-900">StressAway</span>
+                    <Link href="/" className="flex items-center flex-shrink-0">
+                        <Logo height={75} className="-ml-3" />
                     </Link>
 
                     <div className="hidden md:flex items-center space-x-8">

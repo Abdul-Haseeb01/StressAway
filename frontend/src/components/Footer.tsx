@@ -1,5 +1,6 @@
 'use client';
 
+import Logo from './Logo';
 import Link from 'next/link';
 
 export default function Footer() {
@@ -8,24 +9,21 @@ export default function Footer() {
             <div className="container-custom">
                 <div className="grid md:grid-cols-4 gap-8 mb-8">
                     <div>
-                        <div className="flex items-center space-x-2 mb-4">
-                            <div className="w-8 h-8 bg-navy-gradient rounded-lg flex items-center justify-center shadow-navy">
-                                <span className="text-white font-bold">S</span>
-                            </div>
-                            <span className="text-xl font-bold">StressAway</span>
+                        <div className="">
+                            <Logo height={70} variant="white" className="-ml-4" />
                         </div>
                         <p className="text-neutral-400 text-sm">
                             Your trusted partner in mental wellness and stress management.
                         </p>
                     </div>
-                    {/* <div>
+                    <div>
                         <h4 className="font-semibold mb-4">Product</h4>
                         <ul className="space-y-2 text-sm text-neutral-400">
                             <li><Link href="/#features" className="hover:text-white transition-colors">Features</Link></li>
                             <li><Link href="/#how-it-works" className="hover:text-white transition-colors">How It Works</Link></li>
                             <li><Link href="/register" className="hover:text-white transition-colors">Get Started</Link></li>
                         </ul>
-                    </div> */}
+                    </div>
                     <div>
                         <h4 className="font-semibold mb-4">Company</h4>
                         <ul className="space-y-2 text-sm text-neutral-400">

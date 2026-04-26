@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
 import AdaptiveNavbar from '@/components/AdaptiveNavbar';
+import Logo from '@/components/Logo';
 
 const featureDeck = [
     {
@@ -459,11 +460,8 @@ export default function Home() {
                 <div className="container-custom">
                     <div className="grid md:grid-cols-4 gap-8 mb-8">
                         <div>
-                            <div className="flex items-center space-x-2 mb-4">
-                                <div className="w-8 h-8 bg-navy-gradient rounded-lg flex items-center justify-center shadow-navy">
-                                    <span className="text-white font-bold">S</span>
-                                </div>
-                                <span className="text-xl font-bold">StressAway</span>
+                            <div className="">
+                                <Logo height={70} variant="white" className="-ml-4" />
                             </div>
                             <p className="text-neutral-400 text-sm">
                                 Your trusted partner in mental wellness and stress management.

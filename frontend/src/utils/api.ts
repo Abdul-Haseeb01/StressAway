@@ -33,8 +33,11 @@ api.interceptors.response.use(
             if (typeof window !== 'undefined') {
                 clearStorage();
 
-                // Don't alert if we are already on the login page
-                if (window.location.pathname !== '/login' && window.location.pathname !== '/register' && window.location.pathname !== '/') {
+                // Don't alert if we are already on auth pages or home
+                if (window.location.pathname !== '/login' &&
+                    window.location.pathname !== '/register' &&
+                    window.location.pathname !== '/forgot-password' &&
+                    window.location.pathname !== '/') {
                     window.dispatchEvent(new CustomEvent('globalAlert', {
                         detail: { message: 'Your session has expired or your permissions were changed by an Administrator. Please log in again.', type: 'error' }
                     }));

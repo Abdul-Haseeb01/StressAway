@@ -345,7 +345,7 @@ export default function Dashboard() {
         <>
             <Header />
 
-            <main className="min-h-screen bg-gradient-to-br from-neutral-50 via-white to-primary-50/30 pt-20 pb-8">
+            <main className="min-h-screen bg-gradient-to-br from-neutral-50 via-white to-primary-50/30 pt-24 pb-8">
                 <div className="container-custom max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     {/* Welcome Section */}
                     {/* 4. name of user should be written with welcome back */}

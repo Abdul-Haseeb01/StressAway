@@ -7,6 +7,8 @@ import { useState, useEffect } from 'react';
 import { getProfile, getConnections, getFamilyConnections } from '@/utils/api';
 import { getStoredToken, getStoredUser, clearStorage, updateStoredUser } from '@/utils/storage';
 
+import Logo from './Logo';
+
 export default function Header() {
     const router = useRouter();
     const pathname = usePathname();
@@ -162,13 +164,10 @@ export default function Header() {
     return (
         <header className="fixed top-0 left-0 right-0 w-full bg-white/95 backdrop-blur-sm shadow-sm z-50">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div className="flex justify-between items-center h-16">
+                <div className="flex justify-between items-center h-20">
                     {/* Logo */}
-                    <Link href={getLogoLink()} className="flex items-center space-x-2 flex-shrink-0">
-                        <div className="w-10 h-10 bg-navy-gradient rounded-lg flex items-center justify-center shadow-navy">
-                            <span className="text-white text-xl font-bold">S</span>
-                        </div>
-                        <span className="text-xl sm:text-2xl font-bold text-primary-900">StressAway</span>
+                    <Link href={getLogoLink()} className="flex items-center flex-shrink-0">
+                        <Logo height={75} className="-ml-3" />
                     </Link>
 
                     {/* Desktop Navigation */}
