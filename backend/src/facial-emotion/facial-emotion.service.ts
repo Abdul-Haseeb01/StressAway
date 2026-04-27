@@ -24,7 +24,7 @@ export class FacialEmotionService {
 
         // Clean base64 string
         const base64Data = predictDto.image_base64.replace(/^data:image\/\w+;base64,/, '');
-        
+
         // Generate a temporary file name to save the picture safely
         const tempFileName = `temp_capture_${crypto.randomBytes(8).toString('hex')}.jpg`;
         // Since both backend and frontend execution environments launch from their respective project folders, process.cwd() ensures safety
@@ -45,7 +45,7 @@ export class FacialEmotionService {
             // 1. Check if we should use mock mode (useful for deployment platforms like Vercel/Render)
             const isProduction = process.env.NODE_ENV === 'production';
             const forceMock = process.env.ML_MOCK_MODE === 'true';
-            
+
             // 2. Identify Python Path (Use env var or default to 'python3' on Linux/Cloud)
             const pythonPath = process.env.PYTHON_PATH || 'C:\\Users\\LENOVO\\AppData\\Local\\Programs\\Python\\Python312\\python.exe';
 
@@ -54,14 +54,14 @@ export class FacialEmotionService {
 
             if (forceMock || !mlEnvironmentExists) {
                 console.log(`[ML Service] ${forceMock ? 'Forced mock mode' : 'ML environment not found'}. Returning fallback response.`);
-                
+
                 // Simulate a small delay for "processing"
                 await new Promise(resolve => setTimeout(resolve, 1500));
 
                 const emotions = ['happy', 'neutral', 'sad', 'angry', 'surprised'];
                 const randomEmotion = emotions[Math.floor(Math.random() * emotions.length)];
                 const randomStress = Math.floor(Math.random() * 60) + 10; // 10-70 range
-                
+
                 return {
                     success: true,
                     message: 'Facial scan processed successfully (Cloud Fallback)',
@@ -83,18 +83,26 @@ export class FacialEmotionService {
             }
 
             // Call the python script synchronously with --json
+            console.log(`[ML Service] Executing inference script: ${inferenceScript}`);
+            console.log(`[ML Service] Loading and processing with model: emotion_model_final.h5`);
+
+            const startTime = Date.now();
             const outputBuffer = execSync(`"${pythonPath}" "${inferenceScript}" --image "${tempFilePath}" --json`, {
                 cwd: mlModelPath
             });
+            const executionTime = Date.now() - startTime;
+
+            console.log(`[ML Service] Inference completed in ${executionTime}ms`);
+
             let outputString = outputBuffer.toString().trim();
-            
+
             // Safeguard against TensorFlow/Python logging noise polluting stdout: extract only the JSON object
             const jsonStart = outputString.indexOf('{');
             const jsonEnd = outputString.lastIndexOf('}');
             if (jsonStart !== -1 && jsonEnd !== -1 && jsonEnd >= jsonStart) {
                 outputString = outputString.substring(jsonStart, jsonEnd + 1);
             }
-            
+
             const result = JSON.parse(outputString);
 
             if (result.error) {
@@ -113,7 +121,7 @@ export class FacialEmotionService {
             confidence = result.confidence * 100;
             stressScore = result.stress_score;
             emotionProbabilities = result.probabilities as EmotionProbabilities;
-            
+
             // Delete the temp file now that we have the boxed result natively inside `result.boxed_image_base64`
             if (fs.existsSync(tempFilePath)) {
                 fs.unlinkSync(tempFilePath);
@@ -150,14 +158,14 @@ export class FacialEmotionService {
                 image_base64: result.boxed_image_base64,
                 sos_triggered: sosTriggered
             };
-            
+
         } catch (err: any) {
             // Delete the image (privacy)
             if (fs.existsSync(tempFilePath)) {
                 fs.unlinkSync(tempFilePath);
             }
             console.error('Python ML execution failed:', err);
-            
+
             // FALLBACK: If the python script fails for ANY reason (e.g. out of memory on server), 
             // return a mock response so the user doesn't see a "Service Unavailable" error.
             const emotions = ['happy', 'neutral', 'sad'];

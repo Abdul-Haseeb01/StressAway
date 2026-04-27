@@ -136,7 +136,7 @@ Instructions:
         try {
             if (this.genai) {
                 const response = await this.genai.models.generateContent({
-                    model: 'gemini-1.5-flash',
+                    model: 'gemini-2.5-flash',
                     contents: [
                         { role: 'user', parts: [{ text: systemPrompt + '\n\nUser Message: ' + currentMessage }] }
                     ]
